@@ -14,7 +14,7 @@
 |------|------|------|
 | 前端 | Next.js 15 (App Router, TypeScript) | SSR + 客户端组件混用，天然支持 SSE |
 | 后端 | Java 21 + Spring Boot 3 | 熟悉栈；Spring AI 原生支持 Claude 流式 + Tool Use |
-| AI 接入 | Spring AI + Anthropic Claude | `claude-sonnet-4-6` 作为默认模型 |
+| AI 接入 | Spring AI + 多提供商抽象 | 默认本地 Ollama；可配置切换 Claude / OpenAI |
 | 向量存储 | PostgreSQL + pgvector | 减少组件数，MVP 阶段足够；pgvector 支持 HNSW 索引 |
 | 关系存储 | PostgreSQL（同库） | 对话记录、用户、知识条目共用一个 PG 实例 |
 | 文件存储 | 本地挂载（MinIO 预留接口） | Docker Volume 挂载，接口层抽象便于后续迁移 |
@@ -42,6 +42,11 @@ show-assistant/
     ├── conversation/  # 会话持久化模块
     ├── owner/         # 拥有者信息模块
     └── ai/            # AI 服务抽象层
+        ├── provider/  # 多模型提供商实现
+        │   ├── AiChatProvider        # 接口（流式对话抽象）
+        │   ├── OllamaChatProvider    # 本地 Ollama（默认，真实实现）
+        │   ├── ClaudeChatProvider    # Anthropic Claude（Mock，待接入）
+        │   └── OpenAiChatProvider    # OpenAI GPT（Mock，待接入）
         ├── ChatService
         ├── EmbeddingService
         └── ExtractionService
@@ -382,9 +387,125 @@ Claude 流式 API 的事件序列如下：
 建议应基于本轮对话的具体内容，帮助用户深入了解感兴趣的方向。
 ```
 
-### 4.5 会话管理
+### 4.5 多模型提供商抽象
 
-#### 4.5.1 游客会话（localStorage）
+#### 4.5.1 设计目标
+
+PRD 6.3 要求 AI 服务层支持运行时切换 Claude、OpenAI、本地模型。设计原则：
+
+- `ChatService` 只依赖 `AiChatProvider` 接口，不感知具体提供商
+- 通过 `application.yml` 中的 `ai.provider` 配置项选择实现
+- 当前阶段：**Ollama（本地）为真实实现**，Claude/OpenAI 为 Mock（返回模拟数据）
+- 后续直接替换对应实现类，不改调用方代码
+
+#### 4.5.2 接口定义
+
+```java
+// ai/provider/AiChatProvider.java
+public interface AiChatProvider {
+
+    /**
+     * 流式对话，返回 token 流。
+     * 约定：流结束时，最后一个元素以 "[DONE]" 标记；
+     *       suggest_followups 的 JSON 通过 SuggestFollowupsTool 捕获，不混入流。
+     *
+     * @param messages  完整的对话历史（含 system prompt）
+     * @param tools     注册的工具实例列表（Spring AI @Tool bean）
+     * @return Flux<String> token 增量文本流
+     */
+    Flux<String> streamChat(List<Message> messages, Object... tools);
+
+    /**
+     * 提供商标识，用于日志和监控
+     */
+    String providerName();
+}
+```
+
+#### 4.5.3 提供商实现概览
+
+| 实现类 | 状态 | 说明 |
+|--------|------|------|
+| `OllamaChatProvider` | ✅ 真实实现 | 调用本地 Ollama HTTP API，默认模型 `qwen2.5:7b` |
+| `ClaudeChatProvider` | 🔲 Mock | 返回固定模拟 token 流，用于无 API Key 环境测试 |
+| `OpenAiChatProvider` | 🔲 Mock | 返回固定模拟 token 流，用于无 API Key 环境测试 |
+
+#### 4.5.4 配置驱动选择
+
+```yaml
+# application.yml
+ai:
+  provider: ollama          # 可选: ollama | claude | openai
+  ollama:
+    base-url: http://localhost:11434
+    model: qwen2.5:7b
+  claude:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: claude-sonnet-4-6
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-4o
+```
+
+Spring 通过 `@ConditionalOnProperty` + `@Primary` 在启动时装配唯一的 `AiChatProvider` Bean：
+
+```java
+@Bean
+@ConditionalOnProperty(name = "ai.provider", havingValue = "ollama", matchIfMissing = true)
+public AiChatProvider ollamaChatProvider(...) { ... }
+
+@Bean
+@ConditionalOnProperty(name = "ai.provider", havingValue = "claude")
+public AiChatProvider claudeChatProvider(...) { ... }
+
+@Bean
+@ConditionalOnProperty(name = "ai.provider", havingValue = "openai")
+public AiChatProvider openAiChatProvider(...) { ... }
+```
+
+#### 4.5.5 Ollama 本地模型说明
+
+- **运行方式**：独立进程，暴露 HTTP API（`http://localhost:11434`）
+- **Spring AI 集成**：`spring-ai-starter-model-ollama` 提供 `OllamaChatModel` Bean
+- **推荐模型**：
+  - 中英双语对话：`qwen2.5:7b`（阿里通义，7B 参数，消费级 GPU / 16GB 内存 CPU 可运行）
+  - 仅英文或低内存：`llama3.2:3b`
+- **Tool Use 支持**：Ollama 0.3+ 支持 OpenAI 兼容的 function calling，Spring AI 的 `@Tool` 注解可直接使用
+
+#### 4.5.6 Docker Compose 本地模型支持
+
+在 `docker-compose.yml` 中按需启用 Ollama 服务（可选，也可使用宿主机 Ollama）：
+
+```yaml
+ollama:
+  image: ollama/ollama:latest
+  container_name: showassistant-ollama
+  ports:
+    - "11434:11434"
+  volumes:
+    - ollama_data:/root/.ollama
+  # GPU 加速（可选，需要 NVIDIA Container Toolkit）
+  # deploy:
+  #   resources:
+  #     reservations:
+  #       devices:
+  #         - driver: nvidia
+  #           count: all
+  #           capabilities: [gpu]
+```
+
+后端环境变量配置：
+
+```yaml
+AI_PROVIDER: ollama
+AI_OLLAMA_BASE_URL: http://ollama:11434   # Docker 网络内访问
+```
+
+---
+
+### 4.6 会话管理
+
+#### 4.6.1 游客会话（localStorage）
 
 ```typescript
 // 游客会话存储结构（localStorage key: "guest_conversation"）
@@ -400,7 +521,7 @@ interface GuestConversation {
 - 发送消息时携带完整的本地 `history`（最多 20 条），后端无状态处理
 - 后端**不持久化**游客消息（或可选持久化，但不与用户绑定）
 
-#### 4.5.2 登录用户会话（服务端持久化）
+#### 4.6.2 登录用户会话（服务端持久化）
 
 - 登录后，`conversationId` 为服务端生成的真实 ID
 - 每次发消息前，前端**不需要**携带 history，后端从数据库加载最近 N 条消息

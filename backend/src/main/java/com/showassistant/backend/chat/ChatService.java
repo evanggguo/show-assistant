@@ -1,5 +1,6 @@
 package com.showassistant.backend.chat;
 
+import com.showassistant.backend.ai.provider.AiChatProvider;
 import com.showassistant.backend.chat.dto.ChatRequest;
 import com.showassistant.backend.chat.tool.SuggestFollowupsTool;
 import com.showassistant.backend.conversation.Conversation;
@@ -11,7 +12,6 @@ import com.showassistant.backend.owner.OwnerService;
 import com.showassistant.backend.owner.dto.OwnerProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -36,7 +36,7 @@ public class ChatService {
     private static final Long DEFAULT_OWNER_ID = 1L;
     private static final int HISTORY_LIMIT = 20;
 
-    private final ChatClient chatClient;
+    private final AiChatProvider aiChatProvider;
     private final ConversationService conversationService;
     private final OwnerService ownerService;
     private final RagService ragService;
@@ -94,15 +94,12 @@ public class ChatService {
             // 步骤 6：创建 per-request SuggestFollowupsTool 实例（非 Spring Bean）
             SuggestFollowupsTool suggestTool = new SuggestFollowupsTool();
 
-            // 步骤 7-9：流式调用并处理
+            // 步骤 7-9：流式调用并处理（TDD 4.5 — 通过 AiChatProvider 接口调用，屏蔽底层模型差异）
             AtomicReference<StringBuilder> fullTextRef = new AtomicReference<>(new StringBuilder());
             final Long finalConversationId = conversationId;
+            log.debug("Using AI provider: {}", aiChatProvider.providerName());
 
-            chatClient.prompt()
-                .messages(aiMessages)
-                .tools(suggestTool)
-                .stream()
-                .content()
+            aiChatProvider.streamChat(aiMessages, suggestTool)
                 .subscribe(
                     // onNext: 追加 fullText + 发送 token SSE
                     token -> {

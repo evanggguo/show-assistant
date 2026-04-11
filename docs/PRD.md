@@ -271,8 +271,16 @@ AI 展示提取结果，拥有者确认或修正
 
 ### 6.3 多平台兼容
 
-- 抽象 AI 服务层，支持切换：Claude (Anthropic)、OpenAI GPT、本地模型
-- 通过配置文件指定使用的模型和 API Key
+- 抽象 AI 服务层，通过配置文件一键切换提供商，不修改业务代码
+- 支持的提供商：
+
+| 提供商 | 说明 | 状态 |
+|--------|------|------|
+| Ollama（本地模型） | 在本机或内网运行，无需 API Key，数据不出境；推荐模型 `qwen2.5:7b` | MVP 默认 |
+| Claude (Anthropic) | 高质量云端模型，需要 API Key | Mock（待接入） |
+| OpenAI GPT | 高质量云端模型，需要 API Key | Mock（待接入） |
+
+- 配置方式：`application.yml` 中设置 `ai.provider: ollama / claude / openai`
 
 ---
 

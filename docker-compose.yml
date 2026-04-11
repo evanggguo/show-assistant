@@ -30,7 +30,14 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/showassistant
       DB_USERNAME: postgres
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # AI 提供商切换（默认 mock 模式，无需外部服务）
+      AI_MOCK: ${AI_MOCK:-true}
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      # Ollama 地址：Docker 网络内访问宿主机 Ollama（Mac/Windows）
+      # Linux 宿主机请替换为实际 IP，如 http://172.17.0.1:11434
+      AI_OLLAMA_BASE_URL: ${AI_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      AI_OLLAMA_MODEL: ${AI_OLLAMA_MODEL:-qwen2.5:7b}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-placeholder}
     ports:
       - "8080:8080"
     depends_on:
@@ -60,5 +67,25 @@ services:
       backend:
         condition: service_healthy
 
+  # ─── Ollama 本地模型（可选）────────────────────────────────────────────
+  # 如果宿主机已安装 Ollama，无需此服务；否则取消以下注释启用容器内 Ollama
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: showassistant-ollama
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   # GPU 加速（需要 NVIDIA Container Toolkit）
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: all
+  #   #           capabilities: [gpu]
+
 volumes:
   postgres_data:
+  # ollama_data:

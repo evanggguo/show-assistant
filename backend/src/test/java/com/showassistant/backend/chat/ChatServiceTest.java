@@ -1,5 +1,6 @@
 package com.showassistant.backend.chat;
 
+import com.showassistant.backend.ai.provider.AiChatProvider;
 import com.showassistant.backend.chat.dto.ChatRequest;
 import com.showassistant.backend.common.exception.ResourceNotFoundException;
 import com.showassistant.backend.conversation.Conversation;
@@ -7,7 +8,6 @@ import com.showassistant.backend.conversation.ConversationService;
 import com.showassistant.backend.conversation.Message;
 import com.showassistant.backend.conversation.dto.MessageResponse;
 import com.showassistant.backend.knowledge.RagService;
-import com.showassistant.backend.knowledge.dto.KnowledgeEntryDto;
 import com.showassistant.backend.owner.Owner;
 import com.showassistant.backend.owner.OwnerService;
 import com.showassistant.backend.owner.dto.OwnerProfileResponse;
@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
@@ -42,7 +41,7 @@ import static org.mockito.Mockito.*;
 class ChatServiceTest {
 
     @Mock
-    private ChatClient chatClient;
+    private AiChatProvider aiChatProvider;
 
     @Mock
     private ConversationService conversationService;
@@ -64,10 +63,6 @@ class ChatServiceTest {
 
     @Mock
     private SseEmitter emitter;
-
-    // ChatClient 链式调用 mock 对象
-    private ChatClient.ChatClientRequestSpec requestSpec;
-    private ChatClient.StreamResponseSpec streamSpec;
 
     private Owner testOwner;
     private Conversation testConversation;
@@ -94,19 +89,10 @@ class ChatServiceTest {
             .tagline("测试 tagline")
             .build();
 
-        // 构建 ChatClient 链式 mock
-        requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
-        streamSpec = mock(ChatClient.StreamResponseSpec.class);
-
-        when(chatClient.prompt()).thenReturn(requestSpec);
-        when(requestSpec.messages(anyList())).thenReturn(requestSpec);
-        when(requestSpec.tools(any(Object[].class))).thenReturn(requestSpec);
-        when(requestSpec.stream()).thenReturn(streamSpec);
-
-        // 默认 mock：ownerService 和 ragService 正常返回
         when(ownerService.getOwnerProfile()).thenReturn(ownerProfile);
         when(promptAssembler.assemble(any(), anyList())).thenReturn("System prompt");
         when(ragService.retrieve(anyLong(), anyString())).thenReturn(Collections.emptyList());
+        when(aiChatProvider.providerName()).thenReturn("mock");
     }
 
     // ===== 游客新会话 =====
@@ -123,7 +109,7 @@ class ChatServiceTest {
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("你好", "，世界"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("你好", "，世界"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -149,18 +135,15 @@ class ChatServiceTest {
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("回答内容"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("回答内容"));
 
         // when
         chatService.handleStream(req, emitter);
 
-        // then
-        // 验证 requestSpec.messages() 被调用，且消息列表包含历史和当前消息
+        // then：验证 streamChat 被调用，且传入消息列表包含 system + 2条历史 + 当前 = 4 条
         ArgumentCaptor<List> messagesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(requestSpec).messages(messagesCaptor.capture());
-        List<?> aiMessages = messagesCaptor.getValue();
-        // 包含 system message + 2 条历史 + 1 条当前用户消息 = 4 条
-        assertThat(aiMessages).hasSize(4);
+        verify(aiChatProvider).streamChat(messagesCaptor.capture(), any());
+        assertThat(messagesCaptor.getValue()).hasSize(4);
     }
 
     // ===== 已有 conversationId 的登录用户会话 =====
@@ -177,7 +160,7 @@ class ChatServiceTest {
         when(conversationService.loadHistory(10L, 20)).thenReturn(Collections.emptyList());
         when(conversationService.saveAssistantMessage(eq(10L), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("回答"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("回答"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -204,17 +187,15 @@ class ChatServiceTest {
         when(conversationService.loadHistory(10L, 20)).thenReturn(dbHistory);
         when(conversationService.saveAssistantMessage(eq(10L), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("回答"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("回答"));
 
         // when
         chatService.handleStream(req, emitter);
 
-        // then
+        // then：system + 2条历史（排除最后一条）+ 当前 user = 4
         ArgumentCaptor<List> messagesCaptor = ArgumentCaptor.forClass(List.class);
-        verify(requestSpec).messages(messagesCaptor.capture());
-        List<?> aiMessages = messagesCaptor.getValue();
-        // system message + 2 条历史（排除最后一条）+ 1 条当前 user = 4
-        assertThat(aiMessages).hasSize(4);
+        verify(aiChatProvider).streamChat(messagesCaptor.capture(), any());
+        assertThat(messagesCaptor.getValue()).hasSize(4);
     }
 
     // ===== stream 完成时的行为 =====
@@ -231,17 +212,14 @@ class ChatServiceTest {
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        // 流返回两个 token
-        when(streamSpec.content()).thenReturn(Flux.just("你好", "，世界"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("你好", "，世界"));
 
         // when
         chatService.handleStream(req, emitter);
 
         // then
         ArgumentCaptor<String> contentCaptor = ArgumentCaptor.forClass(String.class);
-        verify(conversationService).saveAssistantMessage(
-            eq(10L), contentCaptor.capture(), anyList());
-        // 两个 token 应该被累积
+        verify(conversationService).saveAssistantMessage(eq(10L), contentCaptor.capture(), anyList());
         assertThat(contentCaptor.getValue()).isEqualTo("你好，世界");
     }
 
@@ -257,7 +235,7 @@ class ChatServiceTest {
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("完整回答"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("完整回答"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -278,7 +256,7 @@ class ChatServiceTest {
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("回答"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("回答"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -299,7 +277,7 @@ class ChatServiceTest {
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
-        when(streamSpec.content()).thenReturn(Flux.error(streamError));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.error(streamError));
 
         // when
         chatService.handleStream(req, emitter);
@@ -318,7 +296,7 @@ class ChatServiceTest {
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
-        when(streamSpec.content()).thenReturn(Flux.error(streamError));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.error(streamError));
 
         // when
         chatService.handleStream(req, emitter);
@@ -337,7 +315,6 @@ class ChatServiceTest {
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
-        when(ragService.retrieve(anyLong(), anyString())).thenReturn(Collections.emptyList());
         when(ownerService.getOwnerProfile()).thenThrow(new ResourceNotFoundException("Owner", 1L));
 
         // when
@@ -376,7 +353,7 @@ class ChatServiceTest {
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(streamSpec.content()).thenReturn(Flux.just("你好", "世界"));
+        when(aiChatProvider.streamChat(anyList(), any())).thenReturn(Flux.just("你好", "世界"));
 
         // when
         chatService.handleStream(req, emitter);
