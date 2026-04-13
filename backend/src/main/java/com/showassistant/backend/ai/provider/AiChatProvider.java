@@ -28,4 +28,17 @@ public interface AiChatProvider {
      * 提供商标识，用于日志。
      */
     String providerName();
+
+    /**
+     * Fallback：当 streamChat 的 Tool Use 未触发时（如小模型不支持 Function Calling），
+     * 通过额外的非流式调用生成建议问题。
+     * 默认返回空列表，OllamaChatProvider 覆盖此方法。
+     *
+     * @param messages       同 streamChat 的消息列表
+     * @param assistantReply 刚完成的流式回复全文，用于构造 fallback prompt
+     * @return 建议问题列表（最多 3 条），无法生成时返回空列表
+     */
+    default List<String> generateSuggestions(List<Message> messages, String assistantReply) {
+        return List.of();
+    }
 }

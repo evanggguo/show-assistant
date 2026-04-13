@@ -117,6 +117,16 @@ public class ChatService {
                         String fullText = fullTextRef.get().toString();
                         List<String> suggestions = suggestTool.getCapturedSuggestions();
 
+                        // Fallback：Tool Use 未触发时（如不支持 Function Calling 的小模型），
+                        // 通过额外的非流式调用生成建议
+                        if (suggestions.isEmpty()) {
+                            log.debug("Tool Use suggestions empty for conversation={}, triggering fallback",
+                                finalConversationId);
+                            suggestions = aiChatProvider.generateSuggestions(aiMessages, fullText);
+                            log.debug("Fallback generated {} suggestions for conversation={}",
+                                suggestions.size(), finalConversationId);
+                        }
+
                         try {
                             Message savedMsg = conversationService.saveAssistantMessage(
                                 finalConversationId, fullText, suggestions);
