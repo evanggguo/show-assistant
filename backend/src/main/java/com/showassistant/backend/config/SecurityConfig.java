@@ -1,33 +1,69 @@
 package com.showassistant.backend.config;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.Customizer;
 
 /**
- * TDD 6.3 — 安全配置（Phase 2 占位）
- *
- * Phase 2 暂时不启用 Spring Security（依赖未缓存，网络不通）。
- * 等 spring-boot-starter-security 可用后，恢复为：
- *
- * <pre>
- * {@literal @}Configuration
- * {@literal @}EnableWebSecurity
- * public class SecurityConfig {
- *     {@literal @}Bean
- *     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
- *         http.csrf(AbstractHttpConfigurer::disable)
- *             .authorizeHttpRequests(auth -> auth
- *                 .requestMatchers("/api/chat/**", "/api/owner/**",
- *                                  "/api/suggestions/**", "/api/conversations/**").permitAll()
- *                 .requestMatchers("/api/admin/**").denyAll()
- *                 .anyRequest().permitAll()
- *             );
- *         return http.build();
- *     }
- * }
- * </pre>
+ * Spring Security 配置 — JWT 无状态认证，管理端路径保护
  */
 @Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-    // Phase 2: 无 Spring Security，所有路径默认可访问
-    // Phase 5（管理端）时引入 JWT 认证
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(Customizer.withDefaults())
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // 客户端公开接口
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(
+                    "/api/owner/**",
+                    "/api/chat/**",
+                    "/api/suggestions/**",
+                    "/api/conversations/**"
+                ).permitAll()
+                // 管理端登录接口公开
+                .requestMatchers("/api/admin/auth/login").permitAll()
+                // 其余管理端接口需要 ADMIN 角色
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().permitAll()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) -> {
+                    res.setStatus(401);
+                    res.setContentType("application/json;charset=UTF-8");
+                    res.getWriter().write("{\"success\":false,\"code\":\"UNAUTHORIZED\",\"message\":\"请先登录\"}");
+                })
+                .accessDeniedHandler((req, res, e) -> {
+                    res.setStatus(403);
+                    res.setContentType("application/json;charset=UTF-8");
+                    res.getWriter().write("{\"success\":false,\"code\":\"FORBIDDEN\",\"message\":\"权限不足\"}");
+                })
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }

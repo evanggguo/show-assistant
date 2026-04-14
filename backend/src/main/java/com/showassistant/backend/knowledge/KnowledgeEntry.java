@@ -6,7 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.Transient;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -41,11 +42,10 @@ public class KnowledgeEntry {
     private String content;
 
     /**
-     * 向量嵌入，用于 Phase 3 语义检索。
-     * Phase 2: @Transient 跳过 JPA 映射，数据库列由 Flyway 创建但暂不通过 ORM 操作。
-     * Phase 3: 移除 @Transient，改用 @JdbcTypeCode(SqlTypes.VECTOR) + @Array(length=1536)。
+     * 向量嵌入，用于 Phase 3 语义检索（768 维，Google text-embedding-004）。
      */
-    @Transient
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Column(name = "embedding", columnDefinition = "vector(768)")
     private float[] embedding;
 
     @Column(name = "source_doc")

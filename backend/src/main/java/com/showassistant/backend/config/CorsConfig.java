@@ -3,27 +3,21 @@ package com.showassistant.backend.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
 /**
- * TDD 6.3.2 — CORS 跨域配置
- * 允许前端开发服务器 http://localhost:3000 发起跨域请求，
- * 支持所有 HTTP 方法和请求头，允许携带凭据（credentials）。
+ * CORS 跨域配置
+ * 提供 CorsConfigurationSource Bean，供 Spring Security 统一处理跨域。
  */
 @Configuration
 public class CorsConfig {
 
-    /**
-     * TDD 6.3.2 — CORS 过滤器
-     * 注册全局 CORS 过滤器，作用于所有 API 路径
-     */
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // 读取环境变量，支持多个来源（逗号分隔）；默认允许 localhost:3000
         String allowedOriginsEnv = System.getenv("CORS_ALLOWED_ORIGINS");
         List<String> origins;
         if (allowedOriginsEnv != null && !allowedOriginsEnv.isBlank()) {
@@ -39,7 +33,6 @@ public class CorsConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
-        return new CorsFilter(source);
+        return source;
     }
 }

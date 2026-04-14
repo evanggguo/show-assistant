@@ -1,5 +1,6 @@
 package com.showassistant.backend.knowledge;
 
+import com.showassistant.backend.ai.EmbeddingService;
 import com.showassistant.backend.common.exception.ResourceNotFoundException;
 import com.showassistant.backend.knowledge.dto.KnowledgeEntryDto;
 import com.showassistant.backend.owner.Owner;
@@ -12,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * TDD 4.2 — 知识库管理服务
- * 负责知识条目的 CRUD，Phase 3 将集成向量嵌入生成
+ * 知识库管理服务
+ * 负责知识条目的 CRUD，Phase 3 集成向量嵌入生成
  */
 @Slf4j
 @Service
@@ -22,10 +23,8 @@ public class KnowledgeService {
 
     private final KnowledgeRepository knowledgeRepository;
     private final OwnerRepository ownerRepository;
+    private final EmbeddingService embeddingService;
 
-    /**
-     * TDD 4.2 — 查询指定 Owner 的所有知识条目
-     */
     @Transactional(readOnly = true)
     public List<KnowledgeEntryDto> listByOwner(Long ownerId) {
         return knowledgeRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId)
@@ -34,30 +33,59 @@ public class KnowledgeService {
             .toList();
     }
 
-    /**
-     * TDD 4.2 — 创建新知识条目
-     * Phase 3 将在此处调用 EmbeddingService 生成向量
-     */
     @Transactional
     public KnowledgeEntryDto create(Long ownerId, String type, String title, String content) {
         Owner owner = ownerRepository.findById(ownerId)
             .orElseThrow(() -> new ResourceNotFoundException("Owner", ownerId));
+
+        float[] embedding = embeddingService.embed(content);
 
         KnowledgeEntry entry = KnowledgeEntry.builder()
             .owner(owner)
             .type(KnowledgeType.valueOf(type.toUpperCase()))
             .title(title)
             .content(content)
+            .embedding(embedding.length > 0 ? embedding : null)
             .build();
 
         KnowledgeEntry saved = knowledgeRepository.save(entry);
-        log.debug("Created knowledge entry id={} for ownerId={}", saved.getId(), ownerId);
+        log.debug("Created knowledge entry id={} for ownerId={}, hasEmbedding={}",
+            saved.getId(), ownerId, embedding.length > 0);
         return mapToDto(saved);
     }
 
-    /**
-     * 将 KnowledgeEntry 实体映射为 DTO
-     */
+    @Transactional
+    public KnowledgeEntryDto update(Long id, String title, String content) {
+        KnowledgeEntry entry = knowledgeRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("KnowledgeEntry", id));
+
+        if (title != null) entry.setTitle(title);
+        if (content != null && !content.equals(entry.getContent())) {
+            entry.setContent(content);
+            // 内容变更时重新生成 embedding
+            float[] embedding = embeddingService.embed(content);
+            entry.setEmbedding(embedding.length > 0 ? embedding : null);
+        }
+
+        return mapToDto(knowledgeRepository.save(entry));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        if (!knowledgeRepository.existsById(id)) {
+            throw new ResourceNotFoundException("KnowledgeEntry", id);
+        }
+        knowledgeRepository.deleteById(id);
+        log.debug("Deleted knowledge entry id={}", id);
+    }
+
+    @Transactional(readOnly = true)
+    public KnowledgeEntryDto findById(Long id) {
+        return knowledgeRepository.findById(id)
+            .map(this::mapToDto)
+            .orElseThrow(() -> new ResourceNotFoundException("KnowledgeEntry", id));
+    }
+
     private KnowledgeEntryDto mapToDto(KnowledgeEntry entry) {
         return KnowledgeEntryDto.builder()
             .id(entry.getId())
