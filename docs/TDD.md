@@ -87,7 +87,7 @@ show-assistant/
 用户发送消息
      │
      ▼
-[Frontend] POST /api/chat/stream
+[Frontend] POST /api/owners/{username}/chat/stream
   携带：{ conversationId?, message, history[] }
      │
      ▼
@@ -640,7 +640,7 @@ CREATE TABLE documents (
 ### 6.1 流式对话（核心接口）
 
 ```
-POST /api/chat/stream
+POST /api/owners/{username}/chat/stream
 Content-Type: application/json
 Accept: text/event-stream
 
@@ -695,7 +695,7 @@ Response:
 ### 6.4 拥有者简介接口
 
 ```
-GET /api/owner/profile
+GET /api/owners/{username}/profile
 
 Response:
 {
@@ -703,6 +703,8 @@ Response:
   "tagline": "全栈开发者 & 独立产品人",
   "avatarUrl": "https://..."
 }
+
+GET /api/owners/{username}/suggestions    — 初始提示词列表
 ```
 
 ---
@@ -710,7 +712,7 @@ Response:
 ## 7. 前端核心组件设计
 
 ```
-app/(client)/page.tsx                  # 客户端主页
+app/[ownerUsername]/chat/page.tsx      # 客户端主页（动态路由）
   └── <ChatPage>
         ├── <OwnerProfile>             # 头像、姓名、tagline（首屏展示）
         ├── <MessageList>              # 消息列表

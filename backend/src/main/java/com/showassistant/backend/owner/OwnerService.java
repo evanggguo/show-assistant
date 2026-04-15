@@ -76,6 +76,15 @@ public class OwnerService {
     }
 
     /**
+     * 按 username 查找 Owner（客户端路由使用）
+     */
+    @Transactional(readOnly = true)
+    public Owner getOwnerByUsername(String username) {
+        return ownerRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("Owner", username));
+    }
+
+    /**
      * 将 Owner 实体映射为 OwnerProfileResponse DTO
      */
     private OwnerProfileResponse mapToProfileResponse(Owner owner) {

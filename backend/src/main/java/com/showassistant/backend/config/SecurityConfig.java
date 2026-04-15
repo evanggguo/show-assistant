@@ -37,7 +37,8 @@ public class SecurityConfig {
                     "/api/owner/**",
                     "/api/chat/**",
                     "/api/suggestions/**",
-                    "/api/conversations/**"
+                    "/api/conversations/**",
+                    "/api/owners/**"
                 ).permitAll()
                 // 管理端登录接口公开
                 .requestMatchers("/api/admin/auth/login").permitAll()

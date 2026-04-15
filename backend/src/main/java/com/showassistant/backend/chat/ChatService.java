@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private static final Long DEFAULT_OWNER_ID = 1L;
     private static final int HISTORY_LIMIT = 20;
 
     private final AiChatProvider aiChatProvider;
@@ -73,22 +72,30 @@ public class ChatService {
      * @param req     聊天请求（含 conversationId、message、history）
      * @param emitter 已初始化的 SSE 连接
      */
+    /**
+     * 向后兼容的旧入口（owner_id=1），供旧路由 /api/chat/stream 使用
+     */
     @Async("sseTaskExecutor")
     public void handleStream(ChatRequest req, SseEmitter emitter) {
+        handleStream(req, emitter, 1L);
+    }
+
+    @Async("sseTaskExecutor")
+    public void handleStream(ChatRequest req, SseEmitter emitter, Long ownerId) {
         try {
             // 步骤 1：创建或加载会话
-            Long conversationId = resolveConversationId(req);
+            Long conversationId = resolveConversationId(req, ownerId);
 
             // 步骤 2：保存 user message
             conversationService.saveUserMessage(conversationId, req.message());
 
             // 步骤 3：RAG 检索（Phase 2 返回空列表）
-            List<KnowledgeEntryDto> ragContext = ragService.retrieve(DEFAULT_OWNER_ID, req.message());
+            List<KnowledgeEntryDto> ragContext = ragService.retrieve(ownerId, req.message());
 
             // 步骤 4：构建 Spring AI 消息列表
             boolean toolCallingEnabled = aiChatProvider.supportsToolCalling();
             List<org.springframework.ai.chat.messages.Message> aiMessages =
-                buildAiMessages(req, conversationId, ragContext, toolCallingEnabled);
+                buildAiMessages(req, conversationId, ragContext, toolCallingEnabled, ownerId);
 
             // 步骤 5（在 aiMessages 中已包含 system message）
 
@@ -164,11 +171,11 @@ public class ChatService {
      * @param req 聊天请求
      * @return 有效的会话 ID
      */
-    private Long resolveConversationId(ChatRequest req) {
+    private Long resolveConversationId(ChatRequest req, Long ownerId) {
         if (req.conversationId() == null) {
             // 游客新会话：user_id=null
-            Conversation newConversation = conversationService.createConversation(DEFAULT_OWNER_ID, null);
-            log.debug("Created new guest conversation id={}", newConversation.getId());
+            Conversation newConversation = conversationService.createConversation(ownerId, null);
+            log.debug("Created new guest conversation id={} for ownerId={}", newConversation.getId(), ownerId);
             return newConversation.getId();
         }
         return req.conversationId();
@@ -188,12 +195,12 @@ public class ChatService {
      */
     private List<org.springframework.ai.chat.messages.Message> buildAiMessages(
         ChatRequest req, Long conversationId, List<KnowledgeEntryDto> ragContext,
-        boolean includeToolInstruction) {
+        boolean includeToolInstruction, Long ownerId) {
 
         List<org.springframework.ai.chat.messages.Message> messages = new ArrayList<>();
 
         // System Message
-        OwnerProfileResponse ownerProfile = ownerService.getOwnerProfile();
+        OwnerProfileResponse ownerProfile = ownerService.getOwnerProfile(ownerId);
         String systemPrompt = promptAssembler.assemble(ownerProfile, ragContext, includeToolInstruction);
         messages.add(new SystemMessage(systemPrompt));
 

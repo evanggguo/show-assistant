@@ -35,7 +35,11 @@ const FALLBACK_PROFILE: OwnerProfileType = {
   tagline: '欢迎与我对话',
 }
 
-export default function ChatPage() {
+interface ChatPageProps {
+  ownerUsername: string
+}
+
+export default function ChatPage({ ownerUsername }: ChatPageProps) {
   const [ownerProfile, setOwnerProfile] = useState<OwnerProfileType>(FALLBACK_PROFILE)
   const [initialSuggestions, setInitialSuggestions] =
     useState<string[]>(FALLBACK_SUGGESTIONS)
@@ -48,8 +52,8 @@ export default function ChatPage() {
     async function loadInitialData() {
       try {
         const [profile, suggestions] = await Promise.allSettled([
-          fetchOwnerProfile(),
-          fetchInitialSuggestions(),
+          fetchOwnerProfile(ownerUsername),
+          fetchInitialSuggestions(ownerUsername),
         ])
 
         if (cancelled) return
@@ -69,7 +73,7 @@ export default function ChatPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [ownerUsername])
 
   // ── 流式对话 Hook ──────────────────────────────────────────
   const {
@@ -80,7 +84,7 @@ export default function ChatPage() {
     error,
     sendMessage,
     clearError,
-  } = useChatStream(initialSuggestions)
+  } = useChatStream(ownerUsername, initialSuggestions)
 
   /**
    * 点击提示词卡片：直接发送该文本

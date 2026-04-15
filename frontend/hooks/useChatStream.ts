@@ -8,7 +8,7 @@
  * 1. 使用 fetch + ReadableStream 接收 SSE，而非 EventSource
  *    原因：EventSource 只支持 GET，无法携带 JSON body
  * 2. 三种 SSE 事件：token / done / error
- * 3. 游客模式：历史消息存 localStorage，每次请求携带 history
+ * 3. 游客模式：历史消息按 ownerUsername 存 localStorage，实现多 owner 数据隔离
  * 4. done 事件后，将 streamingText 转为正式 Message 加入列表
  */
 
@@ -26,16 +26,8 @@ interface SseEvent {
   data: unknown
 }
 
-/**
- * 解析一段 SSE 文本块（可能包含多个事件）
- * SSE 格式：event 之间以空行分隔，每行格式为 "field: value"
- *
- * @param chunk 原始文本片段（可能不完整，由调用方维护 buffer）
- * @returns 解析出的完整事件列表
- */
 function parseSSEChunk(chunk: string): SseEvent[] {
   const events: SseEvent[] = []
-  // 按双换行分割独立事件块
   const blocks = chunk.split(/\n\n/)
   for (const block of blocks) {
     if (!block.trim()) continue
@@ -73,43 +65,42 @@ export interface UseChatStreamReturn {
 /**
  * 管理流式对话状态的核心 Hook
  *
- * @param initialSuggestions 首屏展示的初始提示词（从后端获取或降级默认值）
+ * @param ownerUsername   访问路径中的 owner 用户名，用于路由和 localStorage 隔离
+ * @param initialSuggestions 首屏展示的初始提示词
  */
-export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn {
-  // 初始为空，挂载后从 localStorage 加载（避免 SSR/Client 水合不一致导致 React Minified Error）
+export function useChatStream(
+  ownerUsername: string,
+  initialSuggestions: string[]
+): UseChatStreamReturn {
   const [messages, setMessages] = useState<Message[]>([])
 
   useEffect(() => {
-    const stored = loadGuestMessages()
+    const stored = loadGuestMessages(ownerUsername)
     if (stored.length > 0) {
       setMessages(stored)
     }
-  }, [])
+  // 只在 ownerUsername 变化时重新加载，不依赖 messages
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownerUsername])
+
   const [streamingText, setStreamingText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(initialSuggestions)
   const [error, setError] = useState<string | null>(null)
 
-  // 用 ref 追踪流式文本，避免闭包陈旧值问题
   const streamingTextRef = useRef('')
 
   const clearError = useCallback(() => setError(null), [])
 
-  /**
-   * 发送消息并开启 SSE 流
-   * @param text 用户输入的文本
-   */
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isStreaming) return
 
-      // 构造用户消息
       const userMessage: Message = { role: 'user', content: text.trim() }
 
-      // 更新消息列表，加入用户消息
       setMessages((prev) => {
         const next = [...prev, userMessage]
-        saveGuestMessages(next)
+        saveGuestMessages(ownerUsername, next)
         return next
       })
       setStreamingText('')
@@ -117,25 +108,26 @@ export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn
       setIsStreaming(true)
       setError(null)
 
-      // 构造请求体（游客 MVP：不传 conversationId，携带历史）
       const history = messages.map((m) => ({ role: m.role, content: m.content }))
       const requestBody: ChatRequest = {
         message: text.trim(),
         history: [...history, { role: 'user', content: text.trim() }],
       }
 
-      // ── SSE fetch ────────────────────────────────────────────
-      let buffer = '' // 未完整处理的文本缓冲
+      let buffer = ''
 
       try {
-        const res = await fetch(`${API_BASE}/api/chat/stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'text/event-stream',
-          },
-          body: JSON.stringify(requestBody),
-        })
+        const res = await fetch(
+          `${API_BASE}/api/owners/${ownerUsername}/chat/stream`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'text/event-stream',
+            },
+            body: JSON.stringify(requestBody),
+          }
+        )
 
         if (!res.ok) {
           throw new Error(`请求失败：${res.status} ${res.statusText}`)
@@ -148,14 +140,12 @@ export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn
         const reader = res.body.getReader()
         const decoder = new TextDecoder('utf-8')
 
-        // 逐块读取流
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
           buffer += decoder.decode(value, { stream: true })
 
-          // 按双换行切分完整事件，保留未完整部分留待下次处理
           const lastDoubleNewline = buffer.lastIndexOf('\n\n')
           if (lastDoubleNewline === -1) continue
 
@@ -166,12 +156,10 @@ export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn
 
           for (const { event, data } of sseEvents) {
             if (event === 'token') {
-              // 追加流式文本
               const tokenData = data as SseTokenData
               streamingTextRef.current += tokenData.text
               setStreamingText(streamingTextRef.current)
             } else if (event === 'done') {
-              // 流结束：将 streamingText 转为正式 assistant 消息
               const doneData = data as SseDoneData
               const suggestions = doneData.suggestions ?? []
               const assistantMessage: Message = {
@@ -182,7 +170,7 @@ export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn
               }
               setMessages((prev) => {
                 const next = [...prev, assistantMessage]
-                saveGuestMessages(next)
+                saveGuestMessages(ownerUsername, next)
                 return next
               })
               setCurrentSuggestions(suggestions.length > 0 ? suggestions : initialSuggestions)
@@ -190,7 +178,6 @@ export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn
               streamingTextRef.current = ''
               setIsStreaming(false)
             } else if (event === 'error') {
-              // SSE 错误事件
               const errData = data as SseErrorData
               throw new Error(errData.message || '服务器返回错误')
             }
@@ -205,7 +192,7 @@ export function useChatStream(initialSuggestions: string[]): UseChatStreamReturn
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isStreaming, messages, initialSuggestions]
+    [isStreaming, messages, initialSuggestions, ownerUsername]
   )
 
   return {

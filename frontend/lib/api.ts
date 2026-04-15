@@ -1,10 +1,8 @@
 /**
- * 后端 REST API 请求封装
- * 对应 TDD 4.3 后端接口调用
+ * 客户端后端 REST API 请求封装
  *
- * 注意：SSE 流式对话（/api/chat）不在此封装，
- * 直接在 useChatStream Hook 内通过 fetch + ReadableStream 处理，
- * 避免经过 Next.js API Route 导致 SSE 被缓冲。
+ * 注意：SSE 流式对话不在此封装，
+ * 直接在 useChatStream Hook 内通过 fetch + ReadableStream 处理。
  */
 
 import type { OwnerProfile } from './types'
@@ -13,9 +11,6 @@ import type { OwnerProfile } from './types'
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
-/**
- * 通用 GET 请求，附带 JSON 解析和错误处理
- */
 async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { Accept: 'application/json' },
@@ -23,23 +18,26 @@ async function apiFetch<T>(path: string): Promise<T> {
   if (!res.ok) {
     throw new Error(`API ${path} 返回 ${res.status}: ${res.statusText}`)
   }
-  return res.json() as Promise<T>
+  const body = await res.json()
+  // 后端统一包装格式 { success, data }
+  if (body && typeof body === 'object' && 'data' in body) {
+    return body.data as T
+  }
+  return body as T
 }
 
 /**
- * 获取 Owner 简介
- * GET /api/owner/profile
- * 对应 TDD 1.4 首屏 Owner 信息展示
+ * 获取指定 owner 的公开简介
+ * GET /api/owners/{ownerUsername}/profile
  */
-export async function fetchOwnerProfile(): Promise<OwnerProfile> {
-  return apiFetch<OwnerProfile>('/api/owner/profile')
+export async function fetchOwnerProfile(ownerUsername: string): Promise<OwnerProfile> {
+  return apiFetch<OwnerProfile>(`/api/owners/${ownerUsername}/profile`)
 }
 
 /**
- * 获取初始建议提示词列表（首屏展示）
- * GET /api/suggestions/initial
- * 对应 TDD 4.3 首屏初始提示词卡片
+ * 获取指定 owner 的初始建议提示词列表
+ * GET /api/owners/{ownerUsername}/suggestions
  */
-export async function fetchInitialSuggestions(): Promise<string[]> {
-  return apiFetch<string[]>('/api/suggestions/initial')
+export async function fetchInitialSuggestions(ownerUsername: string): Promise<string[]> {
+  return apiFetch<string[]>(`/api/owners/${ownerUsername}/suggestions`)
 }

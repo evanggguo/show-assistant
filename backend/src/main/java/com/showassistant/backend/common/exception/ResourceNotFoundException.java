@@ -10,6 +10,10 @@ public class ResourceNotFoundException extends BusinessException {
         super("RESOURCE_NOT_FOUND", resourceType + " not found with id: " + id);
     }
 
+    public ResourceNotFoundException(String resourceType, String key) {
+        super("RESOURCE_NOT_FOUND", resourceType + " not found: " + key);
+    }
+
     public ResourceNotFoundException(String message) {
         super("RESOURCE_NOT_FOUND", message);
     }

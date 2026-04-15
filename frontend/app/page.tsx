@@ -1,10 +1,17 @@
 /**
- * 根路由 — 重定向到 /chat 页面
- * 使用 Next.js 的 redirect 函数做服务端重定向
+ * 根路由 — 展示说明页面
+ * 访问 /{ownerUsername}/chat 进入指定 owner 的对话页面
  */
 
-import { redirect } from 'next/navigation'
-
 export default function RootPage() {
-  redirect('/chat')
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="text-center space-y-2">
+        <h1 className="text-xl font-semibold text-gray-700">Show Assistant</h1>
+        <p className="text-sm text-gray-400">
+          请访问 <code className="bg-gray-100 px-1 rounded">/{'{ownerUsername}'}/chat</code> 开始对话
+        </p>
+      </div>
+    </div>
+  )
 }
