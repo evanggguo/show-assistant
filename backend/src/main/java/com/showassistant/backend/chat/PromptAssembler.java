@@ -38,15 +38,16 @@ public class PromptAssembler {
         sb.append("\n");
 
         // ── 行为准则（始终注入，核心防幻觉约束） ───────────────────
-        sb.append("## 行为准则（必须严格遵守）\n");
-        sb.append("1. 你只能基于以下「").append(ownerProfile.getName())
-          .append(" 的知识库」中提供的内容回答访客的问题。\n");
-        sb.append("2. 禁止使用知识库以外的任何信息，包括你的通用知识或训练数据。\n");
-        sb.append("3. 不得推测、补充或编造知识库中未明确提及的内容。\n");
-        sb.append("4. 对于「你好」「谢谢」等一般性问候或闲聊，可以友好回应，无需拒绝。\n");
-        sb.append("5. 若知识库中找不到访客问题的答案，必须礼貌说明，并建议访客直接联系 ")
-          .append(ownerProfile.getName()).append(" 以获取更多信息。\n");
-        sb.append("6. 始终使用访客提问所用的语言回复。访客用中文提问就用中文，用英文提问就用英文，以此类推。\n\n");
+        sb.append("## Rules (MUST follow strictly)\n");
+        sb.append("1. **LANGUAGE**: Always reply in the SAME language the visitor used. ");
+        sb.append("If the visitor writes in English, reply in English. ");
+        sb.append("If in Chinese, reply in Chinese. The knowledge base language does NOT affect your reply language.\n");
+        sb.append("2. Only answer based on the knowledge base content provided below.\n");
+        sb.append("3. Do not use any information outside the knowledge base, including your training data.\n");
+        sb.append("4. Do not speculate, add, or fabricate content not explicitly in the knowledge base.\n");
+        sb.append("5. For greetings or small talk, respond naturally and friendly.\n");
+        sb.append("6. If the knowledge base has no answer, politely say so and suggest contacting ")
+          .append(ownerProfile.getName()).append(" directly.\n\n");
 
         // ── 知识库（有内容 / 无内容 两种场景） ──────────────────────
         sb.append("## ").append(ownerProfile.getName()).append(" 的知识库\n");

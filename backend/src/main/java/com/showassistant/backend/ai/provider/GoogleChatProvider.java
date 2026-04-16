@@ -27,9 +27,10 @@ public class GoogleChatProvider implements AiChatProvider {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String SUGGESTION_PROMPT_TEMPLATE =
-        "请根据以下助手回答，生成 2-3 个访客可能感兴趣的跟进问题。\n\n" +
-        "助手的回答：\n%s\n\n" +
-        "要求：只输出 JSON 数组，不含任何其他文字，格式：[\"问题1\", \"问题2\"]，每条不超过 20 字。";
+        "Based on the assistant's reply below, generate 2-3 follow-up questions a visitor might ask.\n\n" +
+        "Assistant's reply:\n%s\n\n" +
+        "IMPORTANT: Generate the questions in the SAME language as the assistant's reply above.\n" +
+        "Output ONLY a JSON array with no other text. Format: [\"question1\", \"question2\"]. Each question under 30 characters.";
 
     private final ChatClient chatClient;
 
