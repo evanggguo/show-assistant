@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { KnowledgeData } from '@/lib/admin-types'
 import { fetchKnowledge } from '@/lib/admin-api'
+import { toFriendlyMessage } from '@/lib/error-utils'
+import ErrorAlert from '@/components/ErrorAlert'
 import KnowledgeTable from '@/components/admin/KnowledgeTable'
 
 export default function KnowledgePage() {
@@ -16,7 +18,7 @@ export default function KnowledgePage() {
       const data = await fetchKnowledge()
       setEntries(data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load')
+      setError(toFriendlyMessage(e))
     } finally {
       setLoading(false)
     }
@@ -34,7 +36,7 @@ export default function KnowledgePage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
+        <ErrorAlert message={error} onRetry={loadData} onDismiss={() => setError(null)} />
       )}
 
       {loading ? (

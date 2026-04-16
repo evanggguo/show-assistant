@@ -7,6 +7,8 @@ import {
   fetchAdminProfile, updateAdminProfile, fetchSuggestions,
   changeUsername, changePassword,
 } from '@/lib/admin-api'
+import { toFriendlyMessage } from '@/lib/error-utils'
+import ErrorAlert from '@/components/ErrorAlert'
 import SuggestionManager from '@/components/admin/SuggestionManager'
 
 export default function ProfilePage() {
@@ -39,7 +41,7 @@ export default function ProfilePage() {
       setProfile(p)
       setSuggestions(s)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load')
+      setError(toFriendlyMessage(e))
     } finally {
       setLoading(false)
     }
@@ -62,7 +64,7 @@ export default function ProfilePage() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save')
+      setError(toFriendlyMessage(e))
     } finally {
       setSaving(false)
     }
@@ -80,7 +82,7 @@ export default function ProfilePage() {
       setNewUsername('')
       setTimeout(() => setUsernameSaved(false), 2000)
     } catch (e) {
-      setUsernameError(e instanceof Error ? e.message : 'Failed to update')
+      setUsernameError(toFriendlyMessage(e))
     } finally {
       setUsernameSaving(false)
     }
@@ -99,7 +101,7 @@ export default function ProfilePage() {
       setPwSaved(true)
       setTimeout(() => setPwSaved(false), 2000)
     } catch (e) {
-      setPwError(e instanceof Error ? e.message : 'Failed to update')
+      setPwError(toFriendlyMessage(e))
     } finally {
       setPwSaving(false)
     }
@@ -121,7 +123,7 @@ export default function ProfilePage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
+        <ErrorAlert message={error} onDismiss={() => setError(null)} />
       )}
 
       {/* 基本信息表单 */}

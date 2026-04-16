@@ -12,11 +12,11 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { AlertCircle, X } from 'lucide-react'
 import type { OwnerProfile as OwnerProfileType } from '@/lib/types'
 import { fetchOwnerProfile, fetchInitialSuggestions } from '@/lib/api'
 import { useChatStream } from '@/hooks/useChatStream'
 import OwnerProfile from '@/components/OwnerProfile'
+import ErrorAlert from '@/components/ErrorAlert'
 import MessageList from './MessageList'
 import SuggestionCards from './SuggestionCards'
 import ChatInput from './ChatInput'
@@ -83,6 +83,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
     currentSuggestions,
     error,
     sendMessage,
+    retryLastMessage,
     clearError,
   } = useChatStream(ownerUsername, initialSuggestions)
 
@@ -152,17 +153,11 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
       {/* ── 错误提示 ─────────────────────────────────────────── */}
       {error && (
         <div className="px-4 py-2 max-w-[800px] mx-auto w-full">
-          <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span className="flex-1">{error}</span>
-            <button
-              onClick={clearError}
-              className="flex-shrink-0 hover:text-red-900 transition-colors"
-              aria-label="Dismiss error"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <ErrorAlert
+            message={error}
+            onDismiss={clearError}
+            onRetry={retryLastMessage}
+          />
         </div>
       )}
 

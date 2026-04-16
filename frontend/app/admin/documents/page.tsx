@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { DocumentData } from '@/lib/admin-types'
 import { fetchDocuments } from '@/lib/admin-api'
+import { toFriendlyMessage } from '@/lib/error-utils'
+import ErrorAlert from '@/components/ErrorAlert'
 import DocumentUploader from '@/components/admin/DocumentUploader'
 
 export default function DocumentsPage() {
@@ -16,7 +18,7 @@ export default function DocumentsPage() {
       const data = await fetchDocuments()
       setDocuments(data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load')
+      setError(toFriendlyMessage(e))
     } finally {
       setLoading(false)
     }
@@ -34,7 +36,7 @@ export default function DocumentsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
+        <ErrorAlert message={error} onRetry={loadData} onDismiss={() => setError(null)} />
       )}
 
       {loading ? (

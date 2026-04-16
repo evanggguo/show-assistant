@@ -15,6 +15,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Message, ChatRequest, SseTokenData, SseDoneData, SseErrorData } from '@/lib/types'
 import { loadGuestMessages, saveGuestMessages } from '@/lib/storage'
+import { toFriendlyMessage } from '@/lib/error-utils'
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -58,7 +59,9 @@ export interface UseChatStreamReturn {
   isStreaming: boolean
   currentSuggestions: string[]
   error: string | null
+  lastFailedMessage: string | null
   sendMessage: (text: string) => void
+  retryLastMessage: () => void
   clearError: () => void
 }
 
@@ -87,10 +90,14 @@ export function useChatStream(
   const [isStreaming, setIsStreaming] = useState(false)
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(initialSuggestions)
   const [error, setError] = useState<string | null>(null)
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null)
 
   const streamingTextRef = useRef('')
 
-  const clearError = useCallback(() => setError(null), [])
+  const clearError = useCallback(() => {
+    setError(null)
+    setLastFailedMessage(null)
+  }, [])
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -184,8 +191,14 @@ export function useChatStream(
           }
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Request failed, please try again later'
-        setError(message)
+        setError(toFriendlyMessage(err))
+        setLastFailedMessage(text.trim())
+        // Remove the optimistically added user message on failure
+        setMessages((prev) => {
+          const next = prev.slice(0, -1)
+          saveGuestMessages(ownerUsername, next)
+          return next
+        })
         setStreamingText('')
         streamingTextRef.current = ''
         setIsStreaming(false)
@@ -195,13 +208,23 @@ export function useChatStream(
     [isStreaming, messages, initialSuggestions, ownerUsername]
   )
 
+  const retryLastMessage = useCallback(() => {
+    if (lastFailedMessage) {
+      setError(null)
+      setLastFailedMessage(null)
+      sendMessage(lastFailedMessage)
+    }
+  }, [lastFailedMessage, sendMessage])
+
   return {
     messages,
     streamingText,
     isStreaming,
     currentSuggestions,
     error,
+    lastFailedMessage,
     sendMessage,
+    retryLastMessage,
     clearError,
   }
 }
