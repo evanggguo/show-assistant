@@ -21,13 +21,19 @@ import java.util.List;
 public class PromptAssembler {
 
     public String assemble(OwnerProfileResponse ownerProfile, List<KnowledgeEntryDto> retrievedContext) {
-        return assemble(ownerProfile, retrievedContext, true);
+        return assemble(ownerProfile, retrievedContext, true, null);
     }
 
     public String assemble(OwnerProfileResponse ownerProfile, List<KnowledgeEntryDto> retrievedContext,
                            boolean includeToolInstruction) {
+        return assemble(ownerProfile, retrievedContext, includeToolInstruction, null);
+    }
+
+    public String assemble(OwnerProfileResponse ownerProfile, List<KnowledgeEntryDto> retrievedContext,
+                           boolean includeToolInstruction, String userMessage) {
         StringBuilder sb = new StringBuilder();
         boolean hasRagContent = retrievedContext != null && !retrievedContext.isEmpty();
+        String detectedLang = detectLanguage(userMessage);
 
         // ── 身份设定 ───────────────────────────────────────────────
         sb.append("你是 ").append(ownerProfile.getName()).append(" 的 AI 个人助手。\n");
@@ -78,9 +84,30 @@ public class PromptAssembler {
             sb.append("Make them natural and valuable to guide the visitor further.\n");
         }
 
+        // ── 语言强制指令（置于末尾，优先级最高）──────────────────────
+        sb.append("\n## FINAL LANGUAGE DIRECTIVE\n");
+        if ("zh".equals(detectedLang)) {
+            sb.append("⚠️ The visitor's message is in Chinese. You MUST respond entirely in Chinese (中文). Do NOT use English.\n");
+        } else {
+            sb.append("⚠️ The visitor's message is in English. You MUST respond entirely in English. Do NOT use Chinese.\n");
+        }
+
         String prompt = sb.toString();
-        log.debug("Assembled system prompt length={}, hasRagContext={}, includeToolInstruction={}",
-            prompt.length(), hasRagContent, includeToolInstruction);
+        log.debug("Assembled system prompt length={}, hasRagContext={}, includeToolInstruction={}, lang={}",
+            prompt.length(), hasRagContent, includeToolInstruction, detectedLang);
         return prompt;
+    }
+
+    /**
+     * 简单语言检测：超过 20% 为 CJK 字符则判断为中文，否则为英文
+     */
+    private static String detectLanguage(String text) {
+        if (text == null || text.isBlank()) return "zh";
+        long cjk = text.chars()
+            .filter(c -> (c >= 0x4E00 && c <= 0x9FFF)   // CJK Unified
+                      || (c >= 0x3400 && c <= 0x4DBF)   // CJK Extension A
+                      || (c >= 0x3000 && c <= 0x303F))  // CJK Symbols
+            .count();
+        return (cjk * 5 >= text.length()) ? "zh" : "en";
     }
 }

@@ -201,7 +201,7 @@ public class ChatService {
 
         // System Message
         OwnerProfileResponse ownerProfile = ownerService.getOwnerProfile(ownerId);
-        String systemPrompt = promptAssembler.assemble(ownerProfile, ragContext, includeToolInstruction);
+        String systemPrompt = promptAssembler.assemble(ownerProfile, ragContext, includeToolInstruction, req.message());
         messages.add(new SystemMessage(systemPrompt));
 
         // 历史消息
