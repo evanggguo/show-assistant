@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-Show Assistant 是 AI 个人展示助理，让访客通过聊天了解拥有者的技能和履历。当前 MVP 为单用户模式，`owner_id=1` 硬编码在后端。
+Dossier 是 AI 个人展示助理，让访客通过聊天了解拥有者的技能和履历。当前 MVP 为单用户模式，`owner_id=1` 硬编码在后端。
 
 **两个子系统**（管理端尚未开发）：
 - **客户端（Client Portal）**：无需登录的 AI 聊天界面
@@ -73,7 +73,7 @@ cd backend && ./mvnw spring-boot:run
 ### 后端包结构
 
 ```
-com.showassistant.backend
+com.dossier.backend
 ├── ai/
 │   ├── provider/           # AI 提供商抽象层
 │   │   ├── AiChatProvider  # 核心接口：streamChat() + generateSuggestions()

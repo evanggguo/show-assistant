@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
         <h1 className="text-xl font-semibold text-gray-800 mb-2 text-center">Admin Console</h1>
-        <p className="text-sm text-gray-500 text-center mb-6">Show Assistant</p>
+        <p className="text-sm text-gray-500 text-center mb-6">Dossier</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

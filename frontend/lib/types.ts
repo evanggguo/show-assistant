@@ -1,6 +1,6 @@
 /**
  * 核心类型定义
- * 对应 TDD 4.3 节 Show Assistant 前端数据结构
+ * 对应 TDD 4.3 节 Dossier 前端数据结构
  */
 
 /**

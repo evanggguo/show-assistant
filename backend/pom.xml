@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.showassistant</groupId>
+    <groupId>com.dossier</groupId>
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>show-assistant-backend</name>
-    <description>Show Assistant Backend Service</description>
+    <name>dossier-backend</name>
+    <description>Dossier Backend Service</description>
 
     <properties>
         <java.version>21</java.version>

@@ -1,4 +1,4 @@
-# Show Assistant — 技术设计文档（TDD）
+# Dossier — 技术设计文档（TDD）
 
 ---
 
@@ -27,7 +27,7 @@
 ### 3.1 模块划分
 
 ```
-show-assistant/
+dossier/
 ├── frontend/          # Next.js，客户端 + 管理端两套页面
 │   ├── app/
 │   │   ├── (client)/  # 客户端路由组
@@ -520,7 +520,7 @@ static class CloudProviderConfig {
 ```yaml
 ollama:
   image: ollama/ollama:latest
-  container_name: showassistant-ollama
+  container_name: dossier-ollama
   ports:
     - "11434:11434"
   volumes:

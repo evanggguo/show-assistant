@@ -1,4 +1,4 @@
-# Show Assistant — 开发日志
+# Dossier — 开发日志
 
 ---
 
@@ -139,8 +139,8 @@ cd frontend && npm run dev   # 开发模式，访问 http://localhost:3000/chat
 
 ```bash
 # 启动 PostgreSQL（pgvector 镜像）
-docker run -d --name showassistant-pg \
-  -e POSTGRES_DB=showassistant \
+docker run -d --name dossier-pg \
+  -e POSTGRES_DB=dossier \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \

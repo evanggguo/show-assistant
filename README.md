@@ -1,10 +1,10 @@
-# Show Assistant
+# Dossier
 
 > 基于 AI 的个人展示助理 —— 让潜在客户通过聊天了解你的技能、履历与作品。
 
 ## 产品简介
 
-Show Assistant 是为自由职业者和小团队设计的 AI 名片系统，包含两个 Web 子系统：
+Dossier 是为自由职业者和小团队设计的 AI 名片系统，包含两个 Web 子系统：
 
 - **客户端（Client Portal）**：类 Gemini 风格的聊天界面，访客无需登录，直接与 AI 对话了解拥有者信息。
 - **管理端（Admin Console）**：拥有者维护知识库（支持文字/文件录入）、配置个人信息与初始提示词。
@@ -69,9 +69,9 @@ AI_PROVIDER=claude AI_MOCK=false ANTHROPIC_API_KEY=<your-key> docker compose up 
 ## 项目结构
 
 ```
-show-assistant/
+dossier/
 ├── backend/          # Spring Boot 后端
-│   └── src/main/java/com/showassistant/backend/
+│   └── src/main/java/com/dossier/backend/
 │       ├── owner/        # 拥有者信息 & 提示词配置
 │       ├── conversation/ # 会话 & 消息 & 动态提示词
 │       ├── knowledge/    # 知识库 & RAG 检索

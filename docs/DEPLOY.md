@@ -1,4 +1,4 @@
-# Show Assistant — 部署指南
+# Dossier — 部署指南
 
 ## 目录
 
@@ -28,8 +28,8 @@
 ### 2.1 克隆代码
 
 ```bash
-git clone https://github.com/evanggguo/show-assistant.git
-cd show-assistant
+git clone https://github.com/evanggguo/dossier.git
+cd dossier
 ```
 
 ### 2.2 创建环境变量文件
@@ -83,8 +83,8 @@ docker compose up -d --build
 ### 3.1 启动 PostgreSQL
 
 ```bash
-docker run -d --name showassistant-pg \
-  -e POSTGRES_DB=showassistant \
+docker run -d --name dossier-pg \
+  -e POSTGRES_DB=dossier \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
@@ -128,7 +128,7 @@ npm run dev
 
 ## 4. 本地模型（Ollama）
 
-Show Assistant 默认使用本地 Ollama 模型，无需 API Key，数据不出境。
+Dossier 默认使用本地 Ollama 模型，无需 API Key，数据不出境。
 
 ### 4.1 安装 Ollama
 
@@ -212,7 +212,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 
 | 服务 | 检查地址 | 预期响应 |
 |------|----------|----------|
-| PostgreSQL | `pg_isready -U postgres -d showassistant` | `accepting connections` |
+| PostgreSQL | `pg_isready -U postgres -d dossier` | `accepting connections` |
 | 后端 | `http://localhost:8080/actuator/health` | `{"status":"UP"}` |
 | 前端 | `http://localhost:3000/chat` | HTTP 200 |
 

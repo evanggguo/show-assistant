@@ -31,7 +31,7 @@ const FALLBACK_SUGGESTIONS = [
 
 /** 后端不可用时的降级 Owner 简介 */
 const FALLBACK_PROFILE: OwnerProfileType = {
-  name: 'Show Assistant',
+  name: 'Dossier',
   tagline: 'Welcome',
 }
 

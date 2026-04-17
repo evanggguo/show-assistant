@@ -7,7 +7,7 @@ spring:
       # 禁用 Ollama embedding 自动配置，使用 Google text-embedding-004 作为 EmbeddingModel
       - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/showassistant}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/dossier}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -81,5 +81,5 @@ app:
 
 logging:
   level:
-    com.showassistant: DEBUG
+    com.dossier: DEBUG
     org.springframework.ai: INFO

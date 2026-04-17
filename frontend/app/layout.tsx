@@ -7,7 +7,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Show Assistant',
+  title: 'Dossier',
   description: 'AI-powered personal assistant — learn about the owner\'s projects and experience.',
 }
 

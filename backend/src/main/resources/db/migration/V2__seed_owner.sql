@@ -6,7 +6,7 @@ VALUES (
     '示例用户',
     '全栈开发者 & 独立产品人',
     NULL,
-    '{"email": "demo@showassistant.com", "github": "https://github.com/demo"}',
+    '{"email": "demo@dossier.app", "github": "https://github.com/demo"}',
     '{"theme": "default", "language": "zh-CN"}'
 )
 ON CONFLICT DO NOTHING;

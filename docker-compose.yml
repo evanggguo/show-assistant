@@ -3,16 +3,16 @@ services:
   # ─── PostgreSQL + pgvector ───────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: showassistant-postgres
+    container_name: dossier-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: showassistant
+      POSTGRES_DB: dossier
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d showassistant"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dossier"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,10 +22,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: showassistant-backend
+    container_name: dossier-backend
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/showassistant
+      DB_URL: jdbc:postgresql://postgres:5432/dossier
       DB_USERNAME: postgres
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       AI_MOCK: ${AI_MOCK:-true}
@@ -61,7 +61,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
         BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8080}
-    container_name: showassistant-frontend
+    container_name: dossier-frontend
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
@@ -73,7 +73,7 @@ services:
   # ─── Nginx 反向代理 ─────────────────────────────────────────────
   nginx:
     image: nginx:alpine
-    container_name: showassistant-nginx
+    container_name: dossier-nginx
     restart: unless-stopped
     ports:
       - "3000:80"
@@ -86,7 +86,7 @@ services:
   # ─── Ollama 本地模型 ────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
-    container_name: showassistant-ollama
+    container_name: dossier-ollama
     restart: unless-stopped
     volumes:
       - ollama_data:/root/.ollama

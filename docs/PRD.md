@@ -1,4 +1,4 @@
-# Show Assistant — 产品需求文档（PRD）
+# Dossier — 产品需求文档（PRD）
 
 ## 1. 背景与目标
 
