@@ -41,4 +41,6 @@ public interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long>
     List<KnowledgeEntry> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
 
     void deleteByOwnerId(Long ownerId);
+
+    void deleteBySourceDoc(Long sourceDocId);
 }

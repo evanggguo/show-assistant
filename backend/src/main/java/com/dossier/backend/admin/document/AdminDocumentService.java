@@ -6,6 +6,7 @@ import com.dossier.backend.common.exception.ResourceNotFoundException;
 import com.dossier.backend.document.Document;
 import com.dossier.backend.document.DocumentRepository;
 import com.dossier.backend.document.DocumentStatus;
+import com.dossier.backend.knowledge.KnowledgeRepository;
 import com.dossier.backend.owner.Owner;
 import com.dossier.backend.owner.OwnerContextHolder;
 import com.dossier.backend.owner.OwnerRepository;
@@ -40,6 +41,7 @@ public class AdminDocumentService {
     private final OwnerRepository ownerRepository;
     private final OwnerContextHolder ownerContextHolder;
     private final DocumentProcessingService processingService;
+    private final KnowledgeRepository knowledgeRepository;
 
     @Value("${app.storage.upload-dir}")
     private String uploadDir;
@@ -101,6 +103,10 @@ public class AdminDocumentService {
     public void deleteDocument(Long id) {
         Document doc = documentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Document", id));
+
+        // 先删除关联的知识库条目
+        knowledgeRepository.deleteBySourceDoc(id);
+        log.info("Deleted knowledge entries for documentId={}", id);
 
         // 删除物理文件
         try {
