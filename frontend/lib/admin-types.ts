@@ -8,6 +8,7 @@ export interface OwnerProfileData {
   tagline: string
   avatarUrl?: string
   contact?: Record<string, string>
+  customPrompt?: string
 }
 
 export interface UpdateOwnerData {
@@ -15,6 +16,7 @@ export interface UpdateOwnerData {
   tagline?: string
   avatarUrl?: string
   contact?: Record<string, string>
+  customPrompt?: string
 }
 
 export interface SuggestionData {

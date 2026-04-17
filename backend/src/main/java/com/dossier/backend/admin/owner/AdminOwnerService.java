@@ -39,6 +39,10 @@ public class AdminOwnerService {
         if (request.getTagline() != null) owner.setTagline(request.getTagline());
         if (request.getAvatarUrl() != null) owner.setAvatarUrl(request.getAvatarUrl());
         if (request.getContact() != null) owner.setContact(request.getContact());
+        if (request.getCustomPrompt() != null) {
+            String trimmed = request.getCustomPrompt().strip();
+            owner.setCustomPrompt(trimmed.isEmpty() ? null : trimmed);
+        }
 
         Owner saved = ownerRepository.save(owner);
         log.info("Updated owner profile id={}", saved.getId());
@@ -82,6 +86,7 @@ public class AdminOwnerService {
             .tagline(owner.getTagline())
             .avatarUrl(owner.getAvatarUrl())
             .contact(owner.getContact())
+            .customPrompt(owner.getCustomPrompt())
             .build();
     }
 }

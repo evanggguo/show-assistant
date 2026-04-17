@@ -18,4 +18,5 @@ public class OwnerProfileResponse {
     private String tagline;
     private String avatarUrl;
     private Map<String, Object> contact;
+    private String customPrompt;
 }

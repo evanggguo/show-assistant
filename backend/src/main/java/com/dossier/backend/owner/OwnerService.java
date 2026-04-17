@@ -94,6 +94,7 @@ public class OwnerService {
             .tagline(owner.getTagline())
             .avatarUrl(owner.getAvatarUrl())
             .contact(owner.getContact())
+            .customPrompt(owner.getCustomPrompt())
             .build();
     }
 }

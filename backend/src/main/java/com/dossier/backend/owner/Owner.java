@@ -52,6 +52,9 @@ public class Owner {
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
+    @Column(name = "custom_prompt", columnDefinition = "TEXT")
+    private String customPrompt;
+
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 

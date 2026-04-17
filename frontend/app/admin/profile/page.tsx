@@ -59,6 +59,7 @@ export default function ProfilePage() {
         name: profile.name,
         tagline: profile.tagline,
         avatarUrl: profile.avatarUrl,
+        customPrompt: profile.customPrompt ?? '',
       })
       setProfile(updated)
       setSaved(true)
@@ -267,6 +268,46 @@ export default function ProfilePage() {
           >
             {pwSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             {pwSaved ? 'Updated ✓' : 'Confirm'}
+          </button>
+        </div>
+      </div>
+
+      {/* AI 助手自定义指令 */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-medium text-gray-700">AI Assistant Custom Instructions</h2>
+          <p className="text-xs text-gray-400 mt-1">
+            Personalize your AI assistant&apos;s tone and style. These instructions supplement but cannot override system security rules, language detection, or knowledge base constraints.
+          </p>
+        </div>
+
+        <div>
+          <textarea
+            value={profile?.customPrompt || ''}
+            onChange={(e) => setProfile(p => p ? { ...p, customPrompt: e.target.value } : p)}
+            placeholder="e.g. Please respond in a friendly and casual tone. Feel free to use humor when appropriate."
+            rows={4}
+            maxLength={2000}
+            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none
+                       focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+          />
+          <p className={[
+            'text-xs mt-1 text-right',
+            (profile?.customPrompt?.length ?? 0) >= 2000 ? 'text-red-500' : 'text-gray-400',
+          ].join(' ')}>
+            {profile?.customPrompt?.length ?? 0} / 2000
+          </p>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600
+                       text-white text-sm rounded-xl transition-colors disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saved ? 'Saved ✓' : 'Save'}
           </button>
         </div>
       </div>

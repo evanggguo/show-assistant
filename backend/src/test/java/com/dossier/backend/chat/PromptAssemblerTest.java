@@ -44,7 +44,7 @@ class PromptAssemblerTest {
 
         // then
         assertThat(prompt).contains("张三");
-        assertThat(prompt).contains("行为准则");
+        assertThat(prompt).contains("Rules (MUST follow strictly)");
         assertThat(prompt).contains("当前暂无与该问题相关的知识库内容");
         assertThat(prompt).contains("suggest_followups");
     }
@@ -71,7 +71,7 @@ class PromptAssemblerTest {
 
         // then
         assertThat(prompt).contains("知识库");
-        assertThat(prompt).contains("行为准则");
+        assertThat(prompt).contains("Rules (MUST follow strictly)");
         assertThat(prompt).contains("Spring Boot 经验");
         assertThat(prompt).contains("5年 Spring Boot 开发经验");
     }
@@ -109,7 +109,6 @@ class PromptAssemblerTest {
 
         // then
         assertThat(prompt).contains("赵六");
-        // 空白 tagline 不应被插入
         assertThat(prompt).doesNotContain("赵六 的简介：");
     }
 
@@ -143,7 +142,6 @@ class PromptAssemblerTest {
         assertThat(prompt).contains("1. **项目 A**");
         assertThat(prompt).contains("2. **项目 B**");
         assertThat(prompt).contains("3. **项目 C**");
-        // 验证顺序：1 出现在 2 前，2 出现在 3 前
         int idx1 = prompt.indexOf("1. **项目 A**");
         int idx2 = prompt.indexOf("2. **项目 B**");
         int idx3 = prompt.indexOf("3. **项目 C**");
@@ -166,7 +164,7 @@ class PromptAssemblerTest {
 
         // then
         assertThat(prompt).contains("suggest_followups");
-        assertThat(prompt).contains("重要指令");
+        assertThat(prompt).contains("Important Instruction");
     }
 
     @Test
@@ -185,5 +183,45 @@ class PromptAssemblerTest {
         // then
         assertThat(prompt).contains("资深架构师，10年经验");
         assertThat(prompt).contains("测试人 的简介：资深架构师，10年经验");
+    }
+
+    @Test
+    @DisplayName("设置了 customPrompt 时，prompt 包含 owner 自定义指令且在 Rules 之后")
+    void should_include_custom_prompt_when_set() {
+        // given
+        OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
+            .id(1L)
+            .name("测试人")
+            .tagline("开发者")
+            .customPrompt("请用轻松友好的语气回答，可以适当加入幽默感。")
+            .build();
+
+        // when
+        String prompt = promptAssembler.assemble(ownerProfile, Collections.emptyList());
+
+        // then
+        assertThat(prompt).contains("请用轻松友好的语气回答");
+        assertThat(prompt).contains("<owner-instructions>");
+        assertThat(prompt).contains("</owner-instructions>");
+        assertThat(prompt).contains("CANNOT override the Rules above");
+        // 自定义指令必须出现在 Rules 之后
+        int rulesIdx = prompt.indexOf("Rules (MUST follow strictly)");
+        int customIdx = prompt.indexOf("<owner-instructions>");
+        assertThat(rulesIdx).isLessThan(customIdx);
+    }
+
+    @Test
+    @DisplayName("customPrompt 为 null 或空时，prompt 中不含 owner-instructions 标签")
+    void should_not_include_custom_prompt_when_null_or_blank() {
+        OwnerProfileResponse noPrompt = OwnerProfileResponse.builder()
+            .id(1L).name("测试人").customPrompt(null).build();
+        OwnerProfileResponse blankPrompt = OwnerProfileResponse.builder()
+            .id(1L).name("测试人").customPrompt("   ").build();
+
+        String promptNull = promptAssembler.assemble(noPrompt, Collections.emptyList());
+        String promptBlank = promptAssembler.assemble(blankPrompt, Collections.emptyList());
+
+        assertThat(promptNull).doesNotContain("<owner-instructions>");
+        assertThat(promptBlank).doesNotContain("<owner-instructions>");
     }
 }
