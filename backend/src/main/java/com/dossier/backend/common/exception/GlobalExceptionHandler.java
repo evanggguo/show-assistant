@@ -12,16 +12,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.stream.Collectors;
 
 /**
- * TDD 6.2 — 全局异常处理器
- * 统一处理各类异常，转换为标准 API 响应格式
+ * TDD 6.2 — Global exception handler
+ * Converts all exceptions into the standard API response format.
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * TDD 6.2.1 — 处理业务异常
-     */
+    /** TDD 6.2.1 — Handle business exceptions. */
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
         log.warn("Business exception: code={}, message={}", ex.getCode(), ex.getMessage());
@@ -30,9 +28,7 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error(ex.getCode(), ex.getMessage()));
     }
 
-    /**
-     * TDD 6.2.2 — 处理资源未找到异常
-     */
+    /** TDD 6.2.2 — Handle resource-not-found exceptions. */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         log.warn("Resource not found: {}", ex.getMessage());
@@ -41,9 +37,7 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error(ex.getCode(), ex.getMessage()));
     }
 
-    /**
-     * TDD 6.2.3 — 处理请求参数校验异常
-     */
+    /** TDD 6.2.3 — Handle request validation exceptions. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
@@ -54,14 +48,12 @@ public class GlobalExceptionHandler {
             .body(ApiResponse.error("VALIDATION_ERROR", message));
     }
 
-    /**
-     * TDD 6.2.4 — 处理通用运行时异常
-     */
+    /** TDD 6.2.4 — Handle generic runtime exceptions. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unexpected error", ex);
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiResponse.error("INTERNAL_ERROR", "服务内部错误，请稍后重试"));
+            .body(ApiResponse.error("INTERNAL_ERROR", "Internal server error, please try again later"));
     }
 }

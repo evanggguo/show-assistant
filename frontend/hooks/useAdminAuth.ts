@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 
 /**
- * 管理端认证状态 Hook
- * 从 localStorage 读取 JWT token，提供 logout 方法
+ * Admin console authentication state hook.
+ * Reads the JWT token from localStorage and provides a logout method.
  */
 export function useAdminAuth() {
   const [token, setToken] = useState<string | null>(null)

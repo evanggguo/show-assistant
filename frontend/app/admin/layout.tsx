@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [token, isLoading, isLoginPage, router])
 
-  // 登录页不需要侧边栏和认证守卫
+  // The login page does not need a sidebar or authentication guard
   if (isLoginPage) {
     return <>{children}</>
   }

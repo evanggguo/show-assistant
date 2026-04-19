@@ -6,8 +6,8 @@ import lombok.Data;
 import java.time.OffsetDateTime;
 
 /**
- * TDD 4.2 — 知识条目 DTO
- * 用于 RagService 检索结果的数据传输对象
+ * TDD 4.2 — Knowledge entry DTO
+ * Data transfer object for RagService retrieval results
  */
 @Data
 @Builder

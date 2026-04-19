@@ -1,9 +1,9 @@
 /**
- * 游客会话本地存储管理
- * 对应 TDD 4.3 游客模式 localStorage 持久化
+ * Guest session local storage management.
+ * Corresponds to TDD 4.3 guest mode localStorage persistence.
  *
- * 存储策略：
- * - key: guest_messages_{ownerUsername} — 各 owner 隔离存储，最多保存 MAX_MESSAGES 条
+ * Storage strategy:
+ * - key: guest_messages_{ownerUsername} — isolated per owner, capped at MAX_MESSAGES entries
  */
 
 import type { Message } from './types'
@@ -15,7 +15,7 @@ function messagesKey(ownerUsername: string): string {
 }
 
 /**
- * 从 localStorage 读取指定 owner 的游客历史消息
+ * Load guest message history for the given owner from localStorage.
  */
 export function loadGuestMessages(ownerUsername: string): Message[] {
   if (typeof window === 'undefined') return []
@@ -31,7 +31,7 @@ export function loadGuestMessages(ownerUsername: string): Message[] {
 }
 
 /**
- * 将消息列表写入 localStorage（按 owner 隔离）
+ * Persist the message list to localStorage (isolated per owner).
  */
 export function saveGuestMessages(ownerUsername: string, messages: Message[]): void {
   if (typeof window === 'undefined') return
@@ -42,18 +42,18 @@ export function saveGuestMessages(ownerUsername: string, messages: Message[]): v
         : messages
     localStorage.setItem(messagesKey(ownerUsername), JSON.stringify(trimmed))
   } catch {
-    // 写入失败（隐私模式/存储满）时静默忽略
+    // Silently ignore write failures (private mode / storage full)
   }
 }
 
 /**
- * 清除指定 owner 的游客历史消息
+ * Clear guest message history for the given owner.
  */
 export function clearGuestMessages(ownerUsername: string): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.removeItem(messagesKey(ownerUsername))
   } catch {
-    // 静默忽略
+    // Silently ignore
   }
 }

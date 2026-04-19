@@ -1,5 +1,5 @@
 /**
- * 管理端 TypeScript 类型定义
+ * Admin console TypeScript type definitions.
  */
 
 export interface OwnerProfileData {

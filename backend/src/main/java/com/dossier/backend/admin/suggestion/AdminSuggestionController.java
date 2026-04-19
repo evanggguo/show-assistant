@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 管理端提示词 CRUD 接口
+ * Admin CRUD endpoints for prompt suggestions
  */
 @RestController
 @RequestMapping("/api/admin/suggestions")

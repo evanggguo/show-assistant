@@ -12,11 +12,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * SuggestFollowupsTool 单元测试
- * 覆盖工具调用、捕获列表获取和边界条件处理
+ * Unit tests for SuggestFollowupsTool.
+ * Covers tool invocation, captured list retrieval, and edge case handling.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SuggestFollowupsTool 单元测试")
+@DisplayName("SuggestFollowupsTool Unit Tests")
 class SuggestFollowupsToolTest {
 
     private SuggestFollowupsTool suggestFollowupsTool;
@@ -27,22 +27,22 @@ class SuggestFollowupsToolTest {
     }
 
     @Test
-    @DisplayName("调用 suggestFollowups(List) 后，getCapturedSuggestions() 返回同一列表内容")
+    @DisplayName("After calling suggestFollowups(List), getCapturedSuggestions() returns the same list content")
     void should_capture_suggestions_when_called_with_list() {
         // given
-        List<String> suggestions = List.of("问题1", "问题2", "问题3");
+        List<String> suggestions = List.of("Question 1", "Question 2", "Question 3");
 
         // when
         String result = suggestFollowupsTool.suggestFollowups(suggestions);
         List<String> captured = suggestFollowupsTool.getCapturedSuggestions();
 
         // then
-        assertThat(captured).containsExactly("问题1", "问题2", "问题3");
+        assertThat(captured).containsExactly("Question 1", "Question 2", "Question 3");
         assertThat(result).isEqualTo("");
     }
 
     @Test
-    @DisplayName("参数为 null 时，getCapturedSuggestions() 返回空列表")
+    @DisplayName("When argument is null, getCapturedSuggestions() returns an empty list")
     void should_return_empty_list_when_null_suggestions() {
         // when
         suggestFollowupsTool.suggestFollowups(null);
@@ -53,7 +53,7 @@ class SuggestFollowupsToolTest {
     }
 
     @Test
-    @DisplayName("参数为空列表时，getCapturedSuggestions() 返回空列表")
+    @DisplayName("When argument is an empty list, getCapturedSuggestions() returns an empty list")
     void should_return_empty_list_when_empty_suggestions() {
         // when
         suggestFollowupsTool.suggestFollowups(Collections.emptyList());
@@ -64,17 +64,17 @@ class SuggestFollowupsToolTest {
     }
 
     @Test
-    @DisplayName("返回值为空字符串（不影响对话文本）")
+    @DisplayName("Return value is an empty string (does not affect conversation text)")
     void should_return_empty_string() {
         // when
-        String result = suggestFollowupsTool.suggestFollowups(List.of("问题A"));
+        String result = suggestFollowupsTool.suggestFollowups(List.of("Question A"));
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("未调用 suggestFollowups 时，getCapturedSuggestions() 返回空列表")
+    @DisplayName("When suggestFollowups has never been called, getCapturedSuggestions() returns an empty list")
     void should_return_empty_list_when_never_called() {
         // when
         List<String> captured = suggestFollowupsTool.getCapturedSuggestions();
@@ -84,16 +84,16 @@ class SuggestFollowupsToolTest {
     }
 
     @Test
-    @DisplayName("getCapturedSuggestions() 返回不可修改列表")
+    @DisplayName("getCapturedSuggestions() returns an unmodifiable list")
     void should_return_unmodifiable_list() {
         // given
-        suggestFollowupsTool.suggestFollowups(List.of("问题1"));
+        suggestFollowupsTool.suggestFollowups(List.of("Question 1"));
 
         // when
         List<String> captured = suggestFollowupsTool.getCapturedSuggestions();
 
         // then
-        assertThatThrownBy(() -> captured.add("额外问题"))
+        assertThatThrownBy(() -> captured.add("extra question"))
             .isInstanceOf(UnsupportedOperationException.class);
     }
 }

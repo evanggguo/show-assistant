@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * TDD 4.3 — 核心流式对话服务
- * 负责协调 RAG 检索、Spring AI 流式调用、SSE 事件推送和消息持久化的完整流程。
+ * TDD 4.3 — Core streaming chat service
+ * Coordinates RAG retrieval, Spring AI streaming, SSE event pushing, and message persistence.
  */
 @Slf4j
 @Service
@@ -46,35 +46,28 @@ public class ChatService {
     private long sseTimeoutMs;
 
     /**
-     * TDD 4.3.1 — 创建 SSE 连接
-     * 初始化 SseEmitter 并设置超时时间，返回给控制器
-     *
-     * @return 配置好超时的 SseEmitter 实例
+     * TDD 4.3.1 — Create SSE connection
+     * Initialises a SseEmitter with the configured timeout and returns it to the controller.
      */
     public SseEmitter createEmitter() {
         return new SseEmitter(sseTimeoutMs);
     }
 
     /**
-     * TDD 4.3.2 — 核心流式处理方法（异步执行）
-     * 完整的流式对话处理流程：
-     * 1. 创建/加载会话
-     * 2. 保存 user message
-     * 3. 调用 RagService 检索知识（Phase 2 返回空列表）
-     * 4. 加载历史消息，构造 Spring AI Messages 列表
-     * 5. 构建 System Prompt（含 Owner 信息和 RAG 上下文）
-     * 6. 创建 per-request SuggestFollowupsTool 实例
-     * 7. 通过 Spring AI chatClient 流式订阅
-     * 8. onNext: 累积 fullText + 推送 token SSE
-     * 9. onComplete: 保存 assistant message + suggestions，推送 done SSE
-     * 10. onError: 推送 error SSE，完成 emitter
-     *
-     * @param req     聊天请求（含 conversationId、message、history）
-     * @param emitter 已初始化的 SSE 连接
+     * TDD 4.3.2 — Core streaming handler (async)
+     * Full streaming chat pipeline:
+     * 1. Create or load conversation
+     * 2. Save user message
+     * 3. RAG retrieval via RagService (returns empty list in Phase 2)
+     * 4. Load history and build Spring AI message list
+     * 5. Build System Prompt (includes owner info and RAG context)
+     * 6. Create per-request SuggestFollowupsTool instance
+     * 7. Stream via Spring AI chatClient
+     * 8. onNext: accumulate fullText + push token SSE
+     * 9. onComplete: save assistant message + suggestions, push done SSE
+     * 10. onError: push error SSE, complete emitter
      */
-    /**
-     * 向后兼容的旧入口（owner_id=1），供旧路由 /api/chat/stream 使用
-     */
+    /** Backwards-compatible entry point (owner_id=1) for the legacy /api/chat/stream route. */
     @Async("sseTaskExecutor")
     public void handleStream(ChatRequest req, SseEmitter emitter) {
         handleStream(req, emitter, 1L);
@@ -83,26 +76,26 @@ public class ChatService {
     @Async("sseTaskExecutor")
     public void handleStream(ChatRequest req, SseEmitter emitter, Long ownerId) {
         try {
-            // 步骤 1：创建或加载会话
+            // Step 1: create or load conversation
             Long conversationId = resolveConversationId(req, ownerId);
 
-            // 步骤 2：保存 user message
+            // Step 2: save user message
             conversationService.saveUserMessage(conversationId, req.message());
 
-            // 步骤 3：RAG 检索（Phase 2 返回空列表）
+            // Step 3: RAG retrieval (returns empty list in Phase 2)
             List<KnowledgeEntryDto> ragContext = ragService.retrieve(ownerId, req.message());
 
-            // 步骤 4：构建 Spring AI 消息列表
+            // Step 4: build Spring AI message list
             boolean toolCallingEnabled = aiChatProvider.supportsToolCalling();
             List<org.springframework.ai.chat.messages.Message> aiMessages =
                 buildAiMessages(req, conversationId, ragContext, toolCallingEnabled, ownerId);
 
-            // 步骤 5（在 aiMessages 中已包含 system message）
+            // Step 5 is already included in aiMessages (SystemMessage)
 
-            // 步骤 6：创建 per-request SuggestFollowupsTool 实例（非 Spring Bean）
+            // Step 6: create per-request SuggestFollowupsTool (not a Spring Bean)
             SuggestFollowupsTool suggestTool = new SuggestFollowupsTool();
 
-            // 步骤 7-9：流式调用并处理（TDD 4.5 — 通过 AiChatProvider 接口调用，屏蔽底层模型差异）
+            // Steps 7-9: stream and handle (TDD 4.5 — calls through AiChatProvider, model-agnostic)
             AtomicReference<StringBuilder> fullTextRef = new AtomicReference<>(new StringBuilder());
             final Long finalConversationId = conversationId;
             log.debug("Using AI provider: {}, toolCalling={}", aiChatProvider.providerName(), toolCallingEnabled);
@@ -110,24 +103,24 @@ public class ChatService {
             Object[] tools = toolCallingEnabled ? new Object[]{suggestTool} : new Object[0];
             aiChatProvider.streamChat(aiMessages, tools)
                 .subscribe(
-                    // onNext: 追加 fullText + 发送 token SSE
+                    // onNext: accumulate fullText + push token SSE
                     token -> {
                         fullTextRef.get().append(token);
                         sseEventBuilder.sendToken(emitter, token);
                     },
-                    // onError: 推送 error SSE
+                    // onError: push error SSE
                     error -> {
                         log.error("Stream error for conversation={}: {}", finalConversationId, error.getMessage(), error);
-                        sseEventBuilder.sendError(emitter, "STREAM_ERROR", "AI 服务暂时不可用，请稍后重试");
+                        sseEventBuilder.sendError(emitter, "STREAM_ERROR", "AI service temporarily unavailable, please try again later");
                         emitter.completeWithError(error);
                     },
-                    // onComplete: 保存消息 + 推送 done SSE
+                    // onComplete: save message + push done SSE
                     () -> {
                         String fullText = fullTextRef.get().toString();
                         List<String> suggestions = suggestTool.getCapturedSuggestions();
 
-                        // Fallback：Tool Use 未触发时（如不支持 Function Calling 的小模型），
-                        // 通过额外的非流式调用生成建议
+                        // Fallback: when Tool Use is not triggered (e.g. small models without Function Calling),
+                        // generate suggestions via an extra non-streaming call
                         if (suggestions.isEmpty()) {
                             log.debug("Tool Use suggestions empty for conversation={}, triggering fallback",
                                 finalConversationId);
@@ -146,7 +139,7 @@ public class ChatService {
                         } catch (Exception e) {
                             log.error("Failed to save assistant message for conversation={}: {}",
                                 finalConversationId, e.getMessage(), e);
-                            sseEventBuilder.sendError(emitter, "SAVE_ERROR", "消息保存失败");
+                            sseEventBuilder.sendError(emitter, "SAVE_ERROR", "Failed to save message");
                             emitter.completeWithError(e);
                         }
                     }
@@ -154,26 +147,23 @@ public class ChatService {
 
         } catch (Exception e) {
             log.error("handleStream error: {}", e.getMessage(), e);
-            sseEventBuilder.sendError(emitter, "INTERNAL_ERROR", "服务内部错误，请稍后重试");
+            sseEventBuilder.sendError(emitter, "INTERNAL_ERROR", "Internal server error, please try again later");
             try {
                 emitter.completeWithError(e);
             } catch (Exception ignored) {
-                // emitter 已关闭
+                // emitter already closed
             }
         }
     }
 
     /**
-     * TDD 4.3.1 — 解析或创建会话 ID
-     * conversationId 为 null（游客）时，创建新会话；
-     * 否则直接使用请求中的 conversationId
-     *
-     * @param req 聊天请求
-     * @return 有效的会话 ID
+     * TDD 4.3.1 — Resolve or create conversation ID
+     * When conversationId is null (guest), a new conversation is created;
+     * otherwise the ID from the request is used directly.
      */
     private Long resolveConversationId(ChatRequest req, Long ownerId) {
         if (req.conversationId() == null) {
-            // 游客新会话：user_id=null
+            // Guest new conversation: user_id=null
             Conversation newConversation = conversationService.createConversation(ownerId, null);
             log.debug("Created new guest conversation id={} for ownerId={}", newConversation.getId(), ownerId);
             return newConversation.getId();
@@ -182,16 +172,8 @@ public class ChatService {
     }
 
     /**
-     * TDD 4.3.2 — 构建 Spring AI 消息列表
-     * 包含以下顺序：
-     * 1. SystemMessage（含 Owner 信息和 RAG 上下文）
-     * 2. 历史消息（来自数据库，或游客请求中携带的 history）
-     * 3. 当前用户消息
-     *
-     * @param req            聊天请求
-     * @param conversationId 当前会话 ID
-     * @param ragContext     RAG 检索结果
-     * @return Spring AI Messages 列表
+     * TDD 4.3.2 — Build Spring AI message list
+     * Order: 1. SystemMessage (owner info + RAG context), 2. history, 3. current user message.
      */
     private List<org.springframework.ai.chat.messages.Message> buildAiMessages(
         ChatRequest req, Long conversationId, List<KnowledgeEntryDto> ragContext,
@@ -204,9 +186,9 @@ public class ChatService {
         String systemPrompt = promptAssembler.assemble(ownerProfile, ragContext, includeToolInstruction, req.message());
         messages.add(new SystemMessage(systemPrompt));
 
-        // 历史消息
+        // History messages
         if (req.conversationId() == null && req.history() != null && !req.history().isEmpty()) {
-            // 游客模式：使用前端携带的历史（排除刚刚保存的那条 user message，避免重复）
+            // Guest mode: use history from the frontend (excludes the just-saved user message to avoid duplication)
             List<ChatRequest.HistoryMessage> history = req.history();
             for (ChatRequest.HistoryMessage h : history) {
                 if ("user".equals(h.role())) {
@@ -216,10 +198,10 @@ public class ChatService {
                 }
             }
         } else if (req.conversationId() != null) {
-            // 登录用户：从数据库加载历史（不含刚保存的当前 user message）
+            // Logged-in user: load history from DB (excludes the just-saved user message)
             List<com.dossier.backend.conversation.dto.MessageResponse> dbHistory =
                 conversationService.loadHistory(conversationId, HISTORY_LIMIT);
-            // 排除最后一条（刚保存的 user message）
+            // Exclude the last entry (the just-saved user message)
             int endIdx = dbHistory.size() > 0 ? dbHistory.size() - 1 : 0;
             for (int i = 0; i < endIdx; i++) {
                 var msgResp = dbHistory.get(i);
@@ -231,7 +213,7 @@ public class ChatService {
             }
         }
 
-        // 当前用户消息
+        // Current user message
         messages.add(new UserMessage(req.message()));
 
         return messages;

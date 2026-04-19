@@ -32,12 +32,12 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * ChatService 单元测试
- * 覆盖 handleStream 的完整业务流程，包括游客模式、登录用户模式、正常完成和异常路径
+ * Unit tests for ChatService.
+ * Covers the full handleStream business flow, including guest mode, logged-in user mode, normal completion, and error paths.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("ChatService 单元测试")
+@DisplayName("ChatService Unit Tests")
 class ChatServiceTest {
 
     @Mock
@@ -72,7 +72,7 @@ class ChatServiceTest {
     void setUp() {
         testOwner = Owner.builder()
             .id(1L)
-            .name("测试主人")
+            .name("Test Owner")
             .build();
 
         testConversation = Conversation.builder()
@@ -85,8 +85,8 @@ class ChatServiceTest {
 
         ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("测试主人")
-            .tagline("测试 tagline")
+            .name("Test Owner")
+            .tagline("test tagline")
             .build();
 
         when(ownerService.getOwnerProfile(anyLong())).thenReturn(ownerProfile);
@@ -95,124 +95,124 @@ class ChatServiceTest {
         when(aiChatProvider.providerName()).thenReturn("mock");
     }
 
-    // ===== 游客新会话 =====
+    // ===== Guest new conversation =====
 
     @Test
-    @DisplayName("handleStream：游客新会话（conversationId=null），正常流程——创建新会话")
+    @DisplayName("handleStream: guest new conversation (conversationId=null), happy path — creates new conversation")
     void should_create_new_conversation_for_guest_when_conversationId_is_null() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("你好，世界").build();
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("hello world").build();
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("你好", "，世界"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("hello", " world"));
 
         // when
         chatService.handleStream(req, emitter);
 
         // then
         verify(conversationService).createConversation(1L, null);
-        verify(conversationService).saveUserMessage(10L, "你好");
+        verify(conversationService).saveUserMessage(10L, "hello");
     }
 
     @Test
-    @DisplayName("handleStream：游客模式，前端携带的 history 消息被正确附加到 AI 消息列表")
+    @DisplayName("handleStream: guest mode, history messages from the frontend are correctly appended to the AI message list")
     void should_include_guest_history_in_ai_messages() {
         // given
         List<ChatRequest.HistoryMessage> history = List.of(
-            new ChatRequest.HistoryMessage("user", "之前的问题"),
-            new ChatRequest.HistoryMessage("assistant", "之前的回答")
+            new ChatRequest.HistoryMessage("user", "previous question"),
+            new ChatRequest.HistoryMessage("assistant", "previous answer")
         );
-        ChatRequest req = new ChatRequest(null, "新问题", history);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("回答").build();
+        ChatRequest req = new ChatRequest(null, "new question", history);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("answer").build();
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("回答内容"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("answer"));
 
         // when
         chatService.handleStream(req, emitter);
 
-        // then：验证 streamChat 被调用，且传入消息列表包含 system + 2条历史 + 当前 = 4 条
+        // then: verify streamChat is called with system + 2 history + current = 4 messages
         ArgumentCaptor<List> messagesCaptor = ArgumentCaptor.forClass(List.class);
         verify(aiChatProvider).streamChat(messagesCaptor.capture());
         assertThat(messagesCaptor.getValue()).hasSize(4);
     }
 
-    // ===== 已有 conversationId 的登录用户会话 =====
+    // ===== Logged-in user session with existing conversationId =====
 
     @Test
-    @DisplayName("handleStream：已有 conversationId，直接使用请求中的 conversationId（不创建新会话）")
+    @DisplayName("handleStream: with existing conversationId, uses it directly without creating a new conversation")
     void should_not_create_new_conversation_when_conversationId_exists() {
         // given
-        ChatRequest req = new ChatRequest(10L, "你好", null);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("回答").build();
+        ChatRequest req = new ChatRequest(10L, "hello", null);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("answer").build();
 
-        when(conversationService.saveUserMessage(10L, "你好"))
+        when(conversationService.saveUserMessage(10L, "hello"))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.loadHistory(10L, 20)).thenReturn(Collections.emptyList());
         when(conversationService.saveAssistantMessage(eq(10L), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("回答"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("answer"));
 
         // when
         chatService.handleStream(req, emitter);
 
         // then
         verify(conversationService, never()).createConversation(anyLong(), any());
-        verify(conversationService).saveUserMessage(10L, "你好");
+        verify(conversationService).saveUserMessage(10L, "hello");
     }
 
     @Test
-    @DisplayName("handleStream：登录用户，从数据库加载历史消息（排除最后一条 user 消息）")
+    @DisplayName("handleStream: logged-in user, loads history from DB (excluding last user message)")
     void should_load_history_from_db_for_logged_in_user() {
         // given
         List<MessageResponse> dbHistory = List.of(
-            MessageResponse.builder().id(1L).role("user").content("历史问题1").build(),
-            MessageResponse.builder().id(2L).role("assistant").content("历史回答1").build(),
-            MessageResponse.builder().id(3L).role("user").content("当前问题").build() // 最后一条被排除
+            MessageResponse.builder().id(1L).role("user").content("history question 1").build(),
+            MessageResponse.builder().id(2L).role("assistant").content("history answer 1").build(),
+            MessageResponse.builder().id(3L).role("user").content("current question").build() // last entry excluded
         );
-        ChatRequest req = new ChatRequest(10L, "当前问题", null);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("回答").build();
+        ChatRequest req = new ChatRequest(10L, "current question", null);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("answer").build();
 
-        when(conversationService.saveUserMessage(10L, "当前问题"))
+        when(conversationService.saveUserMessage(10L, "current question"))
             .thenReturn(Message.builder().id(3L).build());
         when(conversationService.loadHistory(10L, 20)).thenReturn(dbHistory);
         when(conversationService.saveAssistantMessage(eq(10L), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("回答"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("answer"));
 
         // when
         chatService.handleStream(req, emitter);
 
-        // then：system + 2条历史（排除最后一条）+ 当前 user = 4
+        // then: system + 2 history (last excluded) + current user = 4
         ArgumentCaptor<List> messagesCaptor = ArgumentCaptor.forClass(List.class);
         verify(aiChatProvider).streamChat(messagesCaptor.capture());
         assertThat(messagesCaptor.getValue()).hasSize(4);
     }
 
-    // ===== stream 完成时的行为 =====
+    // ===== Stream completion behaviour =====
 
     @Test
-    @DisplayName("handleStream：stream 完成时，saveAssistantMessage 被调用（含累积 fullText 和 suggestions）")
+    @DisplayName("handleStream: on stream complete, saveAssistantMessage is called with accumulated fullText and suggestions")
     void should_call_saveAssistantMessage_on_stream_complete() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("你好，世界").build();
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("hello world").build();
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("你好", "，世界"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("hello", " world"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -220,22 +220,22 @@ class ChatServiceTest {
         // then
         ArgumentCaptor<String> contentCaptor = ArgumentCaptor.forClass(String.class);
         verify(conversationService).saveAssistantMessage(eq(10L), contentCaptor.capture(), anyList());
-        assertThat(contentCaptor.getValue()).isEqualTo("你好，世界");
+        assertThat(contentCaptor.getValue()).isEqualTo("hello world");
     }
 
     @Test
-    @DisplayName("handleStream：stream 完成时，sendDone SSE 事件被正确发送（含 messageId）")
+    @DisplayName("handleStream: on stream complete, sendDone SSE event is sent with correct messageId")
     void should_send_done_event_on_stream_complete() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        Message savedMsg = Message.builder().id(999L).role("assistant").content("完整回答").build();
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        Message savedMsg = Message.builder().id(999L).role("assistant").content("full answer").build();
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("完整回答"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("full answer"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -245,18 +245,18 @@ class ChatServiceTest {
     }
 
     @Test
-    @DisplayName("handleStream：stream 完成时，emitter.complete() 被调用")
+    @DisplayName("handleStream: on stream complete, emitter.complete() is called")
     void should_complete_emitter_on_stream_complete() throws Exception {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("回答").build();
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("answer").build();
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("回答"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("answer"));
 
         // when
         chatService.handleStream(req, emitter);
@@ -265,14 +265,14 @@ class ChatServiceTest {
         verify(emitter).complete();
     }
 
-    // ===== stream 出错时的行为 =====
+    // ===== Stream error behaviour =====
 
     @Test
-    @DisplayName("handleStream：stream 出错时，sendError SSE 事件被调用")
+    @DisplayName("handleStream: on stream error, sendError SSE event is sent")
     void should_send_error_event_on_stream_error() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        RuntimeException streamError = new RuntimeException("AI 服务不可用");
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        RuntimeException streamError = new RuntimeException("AI service unavailable");
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
@@ -287,11 +287,11 @@ class ChatServiceTest {
     }
 
     @Test
-    @DisplayName("handleStream：stream 出错时，emitter.completeWithError 被调用")
+    @DisplayName("handleStream: on stream error, emitter.completeWithError is called")
     void should_complete_emitter_with_error_on_stream_error() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        RuntimeException streamError = new RuntimeException("AI 服务不可用");
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        RuntimeException streamError = new RuntimeException("AI service unavailable");
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
@@ -305,13 +305,13 @@ class ChatServiceTest {
         verify(emitter).completeWithError(streamError);
     }
 
-    // ===== setup 阶段异常 =====
+    // ===== Setup-phase exceptions =====
 
     @Test
-    @DisplayName("handleStream：setup 阶段 ownerService 抛出异常时，sendError 被调用")
+    @DisplayName("handleStream: when ownerService throws during setup, sendError is called")
     void should_send_error_when_owner_service_throws() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
+        ChatRequest req = new ChatRequest(null, "hello", null);
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
@@ -325,11 +325,11 @@ class ChatServiceTest {
     }
 
     @Test
-    @DisplayName("handleStream：setup 阶段异常时，emitter.completeWithError 被调用")
+    @DisplayName("handleStream: when a setup-phase exception occurs, emitter.completeWithError is called")
     void should_complete_emitter_with_error_on_setup_exception() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        RuntimeException setupError = new RuntimeException("内部错误");
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        RuntimeException setupError = new RuntimeException("internal error");
         when(conversationService.createConversation(anyLong(), any())).thenThrow(setupError);
 
         // when
@@ -339,27 +339,27 @@ class ChatServiceTest {
         verify(emitter).completeWithError(setupError);
     }
 
-    // ===== token 推送 =====
+    // ===== Token push =====
 
     @Test
-    @DisplayName("handleStream：每个 token 推送时，sseEventBuilder.sendToken 被调用")
+    @DisplayName("handleStream: sseEventBuilder.sendToken is called for each token")
     void should_call_sendToken_for_each_token() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
-        Message savedMsg = Message.builder().id(100L).role("assistant").content("你好世界").build();
+        ChatRequest req = new ChatRequest(null, "hello", null);
+        Message savedMsg = Message.builder().id(100L).role("assistant").content("hello world").build();
 
         when(conversationService.createConversation(1L, null)).thenReturn(testConversation);
         when(conversationService.saveUserMessage(anyLong(), anyString()))
             .thenReturn(Message.builder().id(50L).build());
         when(conversationService.saveAssistantMessage(anyLong(), anyString(), anyList()))
             .thenReturn(savedMsg);
-        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("你好", "世界"));
+        when(aiChatProvider.streamChat(anyList())).thenReturn(Flux.just("hello", " world"));
 
         // when
         chatService.handleStream(req, emitter);
 
         // then
-        verify(sseEventBuilder).sendToken(emitter, "你好");
-        verify(sseEventBuilder).sendToken(emitter, "世界");
+        verify(sseEventBuilder).sendToken(emitter, "hello");
+        verify(sseEventBuilder).sendToken(emitter, " world");
     }
 }

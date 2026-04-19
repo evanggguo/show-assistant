@@ -1,155 +1,155 @@
 # Dossier
 
-> 基于 AI 的个人展示助理 —— 让潜在客户通过聊天了解你的技能、履历与作品。
+> AI-powered personal portfolio assistant — let potential clients learn about your skills, background, and work through a chat interface.
 
-## 产品简介
+## Overview
 
-Dossier 是为自由职业者和小团队设计的 AI 名片系统，包含三个 Web 子系统：
+Dossier is an AI business card system designed for freelancers and small teams. It consists of three web sub-systems:
 
-- **客户端（Client Portal）** `/{username}/chat`：类 Gemini 风格的聊天界面，访客无需登录，直接与 AI 对话了解拥有者信息。
-- **Owner 管理端（Admin Console）** `/admin`：拥有者登录后维护知识库（文字/文件录入）、配置个人信息、自定义 AI 助手指令与初始提示词。
-- **超级管理面板（Super Admin Panel）** `/admin-panel`：系统级操作，负责创建和删除 Owner 账号（固定 Token 鉴权，不对外暴露）。
+- **Client Portal** `/{username}/chat`: A Gemini-style chat interface where visitors can talk to the AI without logging in to learn about the owner.
+- **Admin Console** `/admin`: Owners log in to maintain their knowledge base (text/file entries), configure personal info, and customize the AI assistant's instructions and initial suggestions.
+- **Super Admin Panel** `/admin-panel`: System-level operations for creating and deleting Owner accounts (authenticated via a fixed token; not exposed publicly).
 
-## 技术栈
+## Tech Stack
 
-| 层次 | 技术 |
-|------|------|
-| 后端 | Java 21 + Spring Boot 3.4 + Spring AI 1.0 |
-| 前端 | Next.js + React + TypeScript + Tailwind CSS |
-| 数据库 | PostgreSQL 16 + pgvector |
-| AI | 多提供商抽象（Google Gemini / Claude / Mock） |
-| 部署 | Docker Compose + Nginx |
+| Layer | Technology |
+|-------|------------|
+| Backend | Java 21 + Spring Boot 3.4 + Spring AI 1.0 |
+| Frontend | Next.js + React + TypeScript + Tailwind CSS |
+| Database | PostgreSQL 16 + pgvector |
+| AI | Multi-provider abstraction (Google Gemini / Claude / Mock) |
+| Deployment | Docker Compose + Nginx |
 
-## 快速开始
+## Quick Start
 
-### 前置要求
+### Prerequisites
 
 - Docker & Docker Compose
 
-### 一键启动（Mock 模式）
+### One-command start (Mock mode)
 
 ```bash
 docker compose up -d
 ```
 
-默认以 **Mock 模式**启动，无需任何 API Key，服务运行在 `http://localhost:3000`。
+Starts in **Mock mode** by default — no API key required. Service runs at `http://localhost:3000`.
 
-### 使用 Google Gemini API（推荐）
+### Use Google Gemini API (recommended)
 
 ```bash
 AI_MOCK=false GOOGLE_AI_API_KEY=<your-key> docker compose up -d
 ```
 
-默认模型为 `gemini-2.0-flash`，可通过 `GOOGLE_AI_MODEL` 覆盖。
+Default model is `gemini-2.0-flash`; override with `GOOGLE_AI_MODEL`.
 
-### 使用 Claude API
+### Use Claude API
 
 ```bash
 AI_PROVIDER=claude AI_MOCK=false ANTHROPIC_API_KEY=<your-key> docker compose up -d
 ```
 
-### 使用本地 Ollama 模型（可选）
+### Use local Ollama model (optional)
 
 ```bash
 AI_PROVIDER=ollama docker compose up -d
 ```
 
-## 环境变量
+## Environment Variables
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `DB_PASSWORD` | `postgres` | PostgreSQL 密码 |
-| `AI_PROVIDER` | `google` | AI 提供商：`google` / `claude` / `ollama` |
-| `AI_MOCK` | `false` | 云端提供商模拟模式开关（`ollama` 时忽略此项） |
-| `GOOGLE_AI_API_KEY` | `placeholder` | Google AI Studio API Key |
-| `GOOGLE_AI_MODEL` | `gemini-2.0-flash` | Google Gemini 模型名称 |
-| `ANTHROPIC_API_KEY` | `placeholder` | Claude API Key |
-| `AI_OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama 服务地址（可选） |
-| `AI_OLLAMA_MODEL` | `qwen2.5:1.5b` | Ollama 模型名称（可选） |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | 跨域允许来源 |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_PASSWORD` | `postgres` | PostgreSQL password |
+| `AI_PROVIDER` | `google` | AI provider: `google` / `claude` / `ollama` |
+| `AI_MOCK` | `false` | Mock mode toggle for cloud providers (ignored when `AI_PROVIDER=ollama`) |
+| `GOOGLE_AI_API_KEY` | `placeholder` | Google AI Studio API key |
+| `GOOGLE_AI_MODEL` | `gemini-2.0-flash` | Google Gemini model name |
+| `ANTHROPIC_API_KEY` | `placeholder` | Claude API key |
+| `AI_OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama service URL (optional) |
+| `AI_OLLAMA_MODEL` | `qwen2.5:1.5b` | Ollama model name (optional) |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | CORS allowed origins |
 
-## 项目结构
+## Project Structure
 
 ```
 dossier/
-├── backend/          # Spring Boot 后端
+├── backend/          # Spring Boot backend
 │   └── src/main/java/com/dossier/backend/
-│       ├── owner/        # 拥有者信息 & 提示词配置
-│       ├── conversation/ # 会话 & 消息 & 动态提示词
-│       ├── knowledge/    # 知识库 & RAG 检索
-│       ├── document/     # 文件管理
-│       └── common/       # 统一响应 & 异常处理
-├── frontend/         # Next.js 前端
-│   ├── app/          # 页面路由
-│   └── components/   # UI 组件（聊天界面等）
+│       ├── owner/        # Owner info & prompt suggestions
+│       ├── conversation/ # Conversations, messages & dynamic suggestions
+│       ├── knowledge/    # Knowledge base & RAG retrieval
+│       ├── document/     # File management
+│       └── common/       # Unified responses & exception handling
+├── frontend/         # Next.js frontend
+│   ├── app/          # Page routes
+│   └── components/   # UI components (chat interface, etc.)
 ├── docs/
-│   └── db-design.md  # 数据库表设计（ER 图）
+│   └── db-design.md  # Database schema design (ER diagram)
 ├── docker-compose.yml
-└── nginx.conf        # 反向代理（SSE 长连接支持）
+└── nginx.conf        # Reverse proxy (SSE long-connection support)
 ```
 
-## 主要 API
+## Main API Endpoints
 
-**客户端（公开，无需鉴权）**
+**Client Portal (public, no authentication required)**
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `GET` | `/api/owners/{username}/profile` | 获取 Owner 公开简介 |
-| `GET` | `/api/owners/{username}/suggestions` | 获取首屏初始提示词 |
-| `POST` | `/api/owners/{username}/chat/stream` | SSE 流式对话 |
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/owners/{username}/profile` | Get owner's public profile |
+| `GET` | `/api/owners/{username}/suggestions` | Get initial home-screen suggestions |
+| `POST` | `/api/owners/{username}/chat/stream` | SSE streaming chat |
 
-**Owner 管理端（JWT 鉴权）**
+**Admin Console (JWT authentication)**
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `POST` | `/api/admin/auth/login` | 登录获取 Token |
-| `GET/PUT` | `/api/admin/owner/profile` | 获取/更新个人信息及 AI 自定义指令 |
-| `PUT` | `/api/admin/owner/username` | 修改用户名 |
-| `PUT` | `/api/admin/owner/password` | 修改密码 |
-| `GET/POST/PUT/DELETE` | `/api/admin/knowledge` | 知识库条目 CRUD |
-| `GET/POST/DELETE` | `/api/admin/documents` | 文档上传、处理、删除 |
-| `GET/POST/PUT/DELETE` | `/api/admin/suggestions` | 初始提示词 CRUD |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/admin/auth/login` | Log in and get token |
+| `GET/PUT` | `/api/admin/owner/profile` | Get/update profile and AI custom instructions |
+| `PUT` | `/api/admin/owner/username` | Change username |
+| `PUT` | `/api/admin/owner/password` | Change password |
+| `GET/POST/PUT/DELETE` | `/api/admin/knowledge` | Knowledge base entry CRUD |
+| `GET/POST/DELETE` | `/api/admin/documents` | Document upload, processing, and deletion |
+| `GET/POST/PUT/DELETE` | `/api/admin/suggestions` | Initial suggestions CRUD |
 
-**超级管理面板（`X-Super-Admin-Token` 鉴权）**
+**Super Admin Panel (`X-Super-Admin-Token` authentication)**
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| `GET/POST` | `/api/super-admin/owners` | 查看/创建 Owner 账号 |
-| `DELETE` | `/api/super-admin/owners/{id}` | 删除 Owner 账号 |
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET/POST` | `/api/super-admin/owners` | List/create owner accounts |
+| `DELETE` | `/api/super-admin/owners/{id}` | Delete an owner account |
 
-## AI 提供商配置说明
+## AI Provider Configuration
 
-后端使用 Spring AI 抽象层，支持运行时切换提供商：
+The backend uses the Spring AI abstraction layer with runtime provider switching:
 
-- **Mock 模式**（`AI_MOCK=true`）：返回固定模拟数据，无需外部依赖，适合开发调试。
-- **Google Gemini**（默认）：调用 Google AI Studio API，需设置 `GOOGLE_AI_API_KEY`，可通过 `AI_MOCK=true` 跳过实际调用。
-- **Claude**：调用 Anthropic API，需设置 `AI_PROVIDER=claude` 和 `ANTHROPIC_API_KEY`，可通过 `AI_MOCK=true` 跳过实际调用。
-- **Ollama**（可选）：调用本地模型，需设置 `AI_PROVIDER=ollama`，`AI_MOCK` 对此提供商无效，始终发送真实请求。
+- **Mock mode** (`AI_MOCK=true`): Returns fixed mock data with no external dependencies — ideal for development and debugging.
+- **Google Gemini** (default): Calls the Google AI Studio API; requires `GOOGLE_AI_API_KEY`. Use `AI_MOCK=true` to skip actual calls.
+- **Claude**: Calls the Anthropic API; requires `AI_PROVIDER=claude` and `ANTHROPIC_API_KEY`. Use `AI_MOCK=true` to skip actual calls.
+- **Ollama** (optional): Calls a local model; requires `AI_PROVIDER=ollama`. `AI_MOCK` has no effect on this provider — requests are always real.
 
-不支持 Tool Use 的小模型（如部分 Ollama 模型）会自动降级到文本解析模式生成动态建议。
+Small models that do not support Tool Use (e.g., some Ollama models) automatically fall back to text-parsing mode to generate dynamic suggestions.
 
-## 数据库
+## Database
 
-使用 Flyway 管理数据库迁移，pgvector 扩展支持向量检索（Phase 3 规划）。
+Database migrations are managed by Flyway. The pgvector extension provides vector retrieval support (planned for Phase 3).
 
-详细表结构见 [docs/db-design.md](docs/db-design.md)。
+See [docs/db-design.md](docs/db-design.md) for the full schema.
 
-## 本地开发
+## Local Development
 
-### 后端
+### Backend
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-需要本地运行 PostgreSQL（或通过 Docker 启动）：
+Requires a local PostgreSQL instance (or start one via Docker):
 
 ```bash
 docker compose up postgres -d
 ```
 
-### 前端
+### Frontend
 
 ```bash
 cd frontend
@@ -157,4 +157,4 @@ npm install
 npm run dev
 ```
 
-前端默认访问 `http://localhost:3000`，API 请求代理到 `http://localhost:8080`。
+The frontend defaults to `http://localhost:3000` and proxies API requests to `http://localhost:8080`.

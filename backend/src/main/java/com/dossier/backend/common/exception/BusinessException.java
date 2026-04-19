@@ -3,8 +3,8 @@ package com.dossier.backend.common.exception;
 import lombok.Getter;
 
 /**
- * TDD 6.2 — 业务异常基类
- * 用于表示可预期的业务错误，携带错误码和用户友好消息
+ * TDD 6.2 — Business exception base class
+ * Represents expected business errors, carrying an error code and a user-friendly message.
  */
 @Getter
 public class BusinessException extends RuntimeException {

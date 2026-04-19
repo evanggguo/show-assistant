@@ -1,360 +1,360 @@
-# Dossier — 产品需求文档（PRD）
+# Dossier — Product Requirements Document (PRD)
 
-## 1. 背景与目标
+## 1. Background and Goals
 
-**产品定位**：为自由职业者或小团队（拥有者）提供 AI 驱动的个人展示助理，让拥有者的潜在客户可以随时通过对话了解拥有者的技能、履历和作品集。
+**Product positioning**: An AI-powered personal portfolio assistant for freelancers and small teams (owners), enabling potential clients to learn about the owner's skills, background, and portfolio at any time through a conversational interface.
 
-**核心价值**：
-- 对客户：24/7 可用的智能咨询入口，代替被动的静态个人主页
-- 对拥有者：零代码维护知识库，AI 自动提炼关键信息
-
----
-
-## 2. 系统架构概览
-
-系统分为三个独立 Web 入口，共用同一后端：
-
-```
-客户端（Client Portal）  /{username}/chat
-  └── 对外展示，供潜在客户访问，类 Gemini 聊天界面，支持多 Owner
-
-Owner 管理端（Admin Console）  /admin
-  └── 仅拥有者使用，登录后维护知识库、个人信息与 AI 配置；JWT 鉴权
-
-超级管理面板（Super Admin Panel）  /admin-panel
-  └── 系统级操作，创建/删除 Owner 账号；固定 Token 鉴权，不对外暴露
-```
+**Core value**:
+- For clients: a 24/7 intelligent consultation entry point that replaces passive static personal pages
+- For owners: a zero-code knowledge base — the AI automatically distills key information
 
 ---
 
-## 3. 客户端（Client Portal）
+## 2. System Architecture Overview
 
-### 3.1 功能列表
-
-| 功能 | 说明 | 优先级 |
-|------|------|--------|
-| 对话聊天框 | 多轮对话，支持流式输出（streaming） | P0 |
-| SSO 登录 / 游客模式 | 支持第三方 SSO 登录，也可以游客身份直接使用 | P0 |
-| 动态提示词 | 首屏展示初始提示词；每次 AI 回答后，基于当前问答内容动态生成新提示词 | P0 |
-| 拥有者简介展示 | 页面顶部或侧边展示头像、名字、简短 tagline | P0 |
-| 历史会话恢复 | 已登录用户再次访问时，展示历史聊天记录及上次会话对应的最新提示词 | P0 |
-| 联系方式引导 | AI 在适当时机引导客户获取联系方式 | P1 |
-| 多语言支持 | 检测浏览器语言，界面和 AI 回复匹配语言 | P2 |
-| 移动端适配 | 响应式布局 | P0 |
-
-### 3.2 登录与身份说明
-
-**SSO 登录**：
-- 支持主流第三方登录（如 Google、GitHub），减少注册门槛
-- 登录后绑定用户身份，持久化聊天记录
-
-**游客模式**：
-- 无需登录，直接进入聊天
-- 会话数据仅存于浏览器本地（localStorage），关闭后清空
-- 页面可在适当时机（如对话若干轮后）引导游客登录以保存记录
-
-### 3.3 动态提示词机制
+The system consists of three independent web entry points sharing a single backend:
 
 ```
-首次进入页面
-  └── 展示拥有者在管理端配置的初始提示词（3~6 条）
+Client Portal  /{username}/chat
+  └── Public-facing, accessible to potential clients; Gemini-style chat interface; supports multiple owners
 
-用户提问 → AI 回答完成后
-  └── AI 基于本轮问答内容，生成 2~4 条相关的追问提示词
-  └── 展示在 AI 回答下方，供用户一键点击继续追问
+Owner Admin Console  /admin
+  └── Used only by the owner; log in to manage knowledge base, personal info, and AI configuration; JWT auth
 
-用户再次登录
-  └── 恢复历史对话记录
-  └── 展示上次会话最后一轮回答所生成的提示词，便于继续话题
+Super Admin Panel  /admin-panel
+  └── System-level operations; create/delete owner accounts; fixed token auth; not exposed publicly
 ```
-
-**提示词展示形式**：小卡片/标签，点击即触发提问，不影响手动输入。
-
-### 3.4 界面设计要求
-
-参考 Gemini（gemini.google.com）的视觉风格：
-- 深色/浅色主题切换
-- 居中宽幅聊天区
-- 简洁的对话布局：用户消息右对齐气泡，AI 回答全宽展示，支持 Markdown 渲染
-- 底部固定输入框，含发送按钮和附件预留位（P2）
-- 首屏未输入时，显示品牌化欢迎语 + 初始提示词卡片
-- 右上角展示登录入口（已登录则显示头像/昵称）
-
-### 3.5 AI 行为规范
-
-- 只回答与拥有者相关的问题，拒绝无关话题（友好提示）
-- 回答**严格基于知识库内容**，禁止使用通用知识或训练数据补充，不编造信息
-- 对于「你好」「谢谢」等一般性问候或闲聊，可友好回应，无需拒绝
-- 若知识库中无答案，必须礼貌告知用户，并建议直接联系拥有者获取更多信息
-- 每次回答结束时，额外输出 2~4 条追问提示词（结构化字段，不混入正文）
-- 语气：专业、友好、简洁
-- 防幻觉机制：System Prompt 中始终注入「行为准则」强制约束段落；RAG 为空时显式声明"当前暂无相关知识库内容"，避免 AI 自由发挥
 
 ---
 
-## 4. Owner 管理端（Admin Console）
+## 3. Client Portal
 
-### 4.1 功能列表
+### 3.1 Feature List
 
-| 功能 | 说明 | 优先级 | 状态 |
-|------|------|--------|------|
-| Owner 账号登录 | 账号密码登录，初始密码 888888，支持修改用户名和密码 | P0 | ✅ 已上线 |
-| 个人信息设置 | 配置头像、姓名、tagline、联系方式等展示信息 | P0 | ✅ 已上线 |
-| AI 助手自定义指令 | 设置 AI 助手的语气与风格，沙盒化注入 System Prompt | P0 | ✅ 已上线 |
-| 文件上传录入知识库 | 支持 PDF、Word、TXT、Markdown 等文档，自动提取内容 | P0 | ✅ 已上线 |
-| 知识库条目管理 | 手动创建/查看/编辑/删除知识条目（TEXT / FAQ / STRUCTURED 类型） | P0 | ✅ 已上线 |
-| 初始提示词管理 | 配置客户端首屏展示的引导问题，支持启用/禁用/排序 | P0 | ✅ 已上线 |
-| 图片上传 | 上传作品集图片，AI 提取描述（可辅以文字说明） | P1 | ⬜ 待开发 |
-| 对话记录查看 | 查看客户与 AI 的历史对话（用于优化知识库） | P2 | ⬜ 待开发 |
-| 知识库统计 | 条目数、覆盖话题等概览信息 | P2 | ⬜ 待开发 |
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Chat interface | Multi-turn conversation with streaming output | P0 |
+| SSO login / guest mode | Supports third-party SSO login or direct guest access | P0 |
+| Dynamic suggestions | Display initial suggestions on the home screen; generate new follow-up suggestions after each AI reply based on conversation content | P0 |
+| Owner profile display | Show avatar, name, and tagline at the top or side of the page | P0 |
+| Conversation history restore | Logged-in users see previous chat history and the latest suggestions from the last session on return | P0 |
+| Contact info nudge | AI guides clients to request contact info at an appropriate moment | P1 |
+| Multi-language support | Detect browser language; match UI and AI replies to user's language | P2 |
+| Mobile responsiveness | Responsive layout | P0 |
 
-**超级管理面板**（独立入口 `/admin-panel`）：写死 Token 鉴权，创建/删除 Owner 账号，仅系统管理员使用。
+### 3.2 Login and Identity
 
-### 4.2 知识库录入流程（核心）
+**SSO login**:
+- Supports major third-party providers (e.g., Google, GitHub) to reduce sign-up friction
+- Binds user identity after login and persists chat history
+
+**Guest mode**:
+- No login required — enter the chat directly
+- Session data is stored locally in the browser (localStorage) and cleared on close
+- The page may prompt guests to log in at an appropriate moment (e.g., after several conversation rounds) to save their history
+
+### 3.3 Dynamic Suggestions Mechanism
 
 ```
-拥有者上传文件 / 输入文字
+First page load
+  └── Display initial suggestions configured by the owner in the admin console (3–6 items)
+
+User asks a question → AI finishes replying
+  └── AI generates 2–4 follow-up suggestions based on the current exchange
+  └── Shown below the AI reply; users can click to ask a follow-up question
+
+User returns after logging in
+  └── Restore conversation history
+  └── Display follow-up suggestions from the last reply in the previous session, for easy continuation
+```
+
+**Suggestion display format**: small cards/chips; clicking one sends the suggestion as a message without affecting manual input.
+
+### 3.4 UI Design Requirements
+
+Reference Gemini (gemini.google.com) visual style:
+- Dark / light theme toggle
+- Centered wide chat area
+- Clean conversation layout: user messages in right-aligned bubbles; AI replies displayed full-width with Markdown rendering
+- Fixed input bar at the bottom with a send button and a reserved attachment slot (P2)
+- On the home screen before any input: show a branded welcome message + initial suggestion cards
+- Login entry in the top-right corner (show avatar/nickname when logged in)
+
+### 3.5 AI Behavior Guidelines
+
+- Only answer questions relevant to the owner; politely decline off-topic requests
+- Replies **must be strictly based on knowledge base content** — never use general knowledge or training data to fill gaps; never fabricate information
+- For general greetings or small talk (e.g., "hello", "thank you"), respond warmly without refusing
+- If the knowledge base has no answer, politely inform the user and suggest contacting the owner directly for more information
+- At the end of each reply, output 2–4 follow-up suggestions as a structured field (not mixed into the reply body)
+- Tone: professional, friendly, concise
+- Anti-hallucination mechanism: the system prompt always injects a "behavior rules" constraint block; when RAG returns empty, explicitly state "there is currently no relevant knowledge base content" to prevent the AI from answering freely
+
+---
+
+## 4. Owner Admin Console
+
+### 4.1 Feature List
+
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| Owner account login | Username/password login; default password 888888; supports username and password changes | P0 | ✅ Live |
+| Profile settings | Configure avatar, name, tagline, contact info, and other display fields | P0 | ✅ Live |
+| AI assistant custom instructions | Set the AI assistant's tone and style; sandboxed injection into the system prompt | P0 | ✅ Live |
+| File upload to knowledge base | Supports PDF, Word, TXT, Markdown; auto-extracts content | P0 | ✅ Live |
+| Knowledge entry management | Manually create/view/edit/delete knowledge entries (TEXT / FAQ / STRUCTURED types) | P0 | ✅ Live |
+| Initial suggestion management | Configure home-screen guide questions; supports enable/disable and sort order | P0 | ✅ Live |
+| Image upload | Upload portfolio images; AI extracts descriptions (with optional text annotations) | P1 | ⬜ Planned |
+| Conversation history | View past client–AI conversations (for improving the knowledge base) | P2 | ⬜ Planned |
+| Knowledge base statistics | Overview of entry count, covered topics, etc. | P2 | ⬜ Planned |
+
+**Super Admin Panel** (separate entry at `/admin-panel`): hardcoded token auth; creates/deletes owner accounts; for system administrators only.
+
+### 4.2 Knowledge Base Entry Flow (Core)
+
+```
+Owner uploads a file / enters text
         ↓
-AI 提取关键信息（技能、项目、经历、成就等）
+AI extracts key information (skills, projects, experience, achievements, etc.)
         ↓
-AI 展示提取结果，拥有者确认或修正
+AI displays extracted results; owner confirms or edits
         ↓
-存入向量数据库（含语义嵌入）
+Stored in the vector database (with semantic embeddings)
 ```
 
-**支持的内容类型**：
-- 技能与技术栈（含熟练程度）
-- 工作/项目经历（时间、公司/客户、角色、成果）
-- 作品集（项目描述、技术、链接、截图）
-- 教育背景与证书
-- 服务内容与定价范围
-- 个人优势与差异化描述
+**Supported content types**:
+- Skills and tech stack (with proficiency level)
+- Work / project experience (dates, company/client, role, outcomes)
+- Portfolio (project description, tech used, links, screenshots)
+- Education background and certifications
+- Services offered and pricing range
+- Personal strengths and differentiators
 
-### 4.3 界面设计要求
+### 4.3 UI Design Requirements
 
-- 左侧导航：知识库管理、个人设置、提示词配置、对话记录
-- 主区域：对话录入界面（与客户端类似，但有文件上传入口）
-- 知识库列表：卡片式展示，支持按类型筛选和搜索
-- 简洁实用，不需要过于精美
+- Left navigation: Knowledge Base, Profile Settings, Suggestion Config, Conversation History
+- Main area: conversational entry interface (similar to the client portal, but with a file upload entry)
+- Knowledge base list: card-based display with type filtering and search
+- Clean and functional — no need for elaborate styling
 
 ---
 
-## 5. 交互动线设计
+## 5. Interaction Flow Design
 
-### 5.1 客户端动线
+### 5.1 Client Portal Flows
 
-#### 5.1.1 游客首次访问
-
-```
-访问 /{ownerUsername}/chat
-  └── 加载首屏：展示拥有者头像、姓名、tagline
-        └── 下方展示欢迎语 + 初始提示词卡片（3~6 条）
-              ├── 点击提示词卡片 → 触发提问 → 进入对话流程（见 5.1.4）
-              └── 手动输入问题 → 进入对话流程（见 5.1.4）
-```
-
-#### 5.1.2 已登录用户访问
+#### 5.1.1 First-Time Guest Visit
 
 ```
-访问 /{ownerUsername}/chat
-  └── 检测到已登录身份（Cookie/Token 有效）
-        └── 有历史会话？
-              ├── 是 → 恢复历史消息列表
-              │         └── 展示上次会话末尾的动态提示词
-              │               ├── 点击提示词 → 追问 → 进入对话流程（见 5.1.4）
-              │               └── 手动输入 → 进入对话流程（见 5.1.4）
-              └── 否 → 同游客首次访问首屏（见 5.1.1）
+Visit /{ownerUsername}/chat
+  └── Load home screen: show owner avatar, name, tagline
+        └── Below: welcome message + initial suggestion cards (3–6)
+              ├── Click a suggestion card → trigger question → enter chat flow (see 5.1.4)
+              └── Type a question manually → enter chat flow (see 5.1.4)
 ```
 
-#### 5.1.3 游客转化登录
+#### 5.1.2 Logged-in User Visit
 
 ```
-对话进行中（游客身份）
-  └── 触发转化时机（如第 3 轮对话结束后 AI 回复中插入引导）
-        └── 展示"登录以保存对话记录"提示条（非强制，可关闭）
-              ├── 点击登录 → 唤起 SSO 登录弹窗
-              │     └── 授权成功 → 绑定身份，将本地会话迁移至服务端
-              │           └── 页面无缝恢复对话
-              └── 忽略 → 继续游客对话，不再重复提示（本次会话内）
+Visit /{ownerUsername}/chat
+  └── Detect logged-in identity (cookie/token valid)
+        └── Has previous conversation?
+              ├── Yes → Restore message history
+              │         └── Show dynamic suggestions from the end of the last session
+              │               ├── Click a suggestion → follow-up → chat flow (see 5.1.4)
+              │               └── Type manually → chat flow (see 5.1.4)
+              └── No → Same as first-time guest home screen (see 5.1.1)
 ```
 
-#### 5.1.4 对话流程（通用）
+#### 5.1.3 Guest-to-Login Conversion
 
 ```
-用户发送消息（点击提示词卡片 或 手动输入 + 发送）
-  └── 输入框禁用，显示加载态
-        └── 后端 RAG 检索 + AI 生成（流式输出）
-              └── AI 回答区域逐字渲染（全宽展示）
-                    └── 流式输出结束
-                          ├── 渲染完整 AI 回复内容
-                          ├── 回复内容下方展示动态提示词卡片（2~4 条，蓝色小标签样式）
-                          └── 输入框恢复可用
+Conversation in progress (as guest)
+  └── Conversion trigger (e.g., after the 3rd exchange, AI inserts a login nudge)
+        └── Show "Log in to save your conversation" banner (dismissible, not mandatory)
+              ├── Click Login → launch SSO login modal
+              │     └── Authorized → bind identity, migrate local session to server
+              │           └── Page resumes conversation seamlessly
+              └── Dismiss → continue as guest; no repeat prompt for this session
 ```
 
-### 5.2 管理端动线
-
-#### 5.2.1 登录流程
+#### 5.1.4 Chat Flow (General)
 
 ```
-访问管理端 URL
-  └── 未登录 → 重定向至登录页
-        └── 输入账号 + 密码 → 点击登录
-              ├── 认证失败 → 提示错误，留在登录页
-              └── 认证成功 → 重定向至知识库管理主页
+User sends a message (click suggestion card or type + send)
+  └── Input disabled; loading state shown
+        └── Backend RAG retrieval + AI generation (streaming output)
+              └── AI reply area renders text incrementally (full-width)
+                    └── Streaming output ends
+                          ├── Render complete AI reply
+                          ├── Show dynamic suggestion cards below the reply (2–4, blue chip style)
+                          └── Input re-enabled
 ```
 
-#### 5.2.2 文本录入知识库
+### 5.2 Admin Console Flows
+
+#### 5.2.1 Login Flow
 
 ```
-进入知识库管理页面（左侧导航）
-  └── 主区域显示录入对话界面
-        └── 拥有者在输入框描述内容（如粘贴简历片段、口述项目经历）
-              └── 发送 → AI 解析并展示提取结果
-                    ├── 提取结果以结构化卡片形式展示（类型、标题、内容摘要）
-                    │     ├── 拥有者点击"确认保存" → 写入知识库，卡片变为已保存态
-                    │     ├── 拥有者点击"编辑"→ 进入内联编辑，修改后确认保存
-                    │     └── 拥有者点击"丢弃" → 本条不保存，可继续输入
-                    └── 保存完成后可继续录入新内容
+Visit admin URL
+  └── Not logged in → redirect to login page
+        └── Enter username + password → click Login
+              ├── Auth failed → show error, stay on login page
+              └── Auth succeeded → redirect to Knowledge Base home
 ```
 
-#### 5.2.3 文件上传录入知识库
+#### 5.2.2 Add Text to Knowledge Base
 
 ```
-点击录入界面的"上传文件"按钮
-  └── 选择文件（PDF / Word / TXT）
-        └── 上传中 → 进度条展示
-              └── 上传完成 → AI 后台解析
-                    └── 解析完成 → 展示提取结果列表（同 5.2.2 后半段流程）
-                          └── 拥有者逐条确认 / 批量确认 / 批量丢弃
+Go to Knowledge Base page (left nav)
+  └── Main area shows the entry dialog interface
+        └── Owner types content (e.g., pastes a resume section, describes a project)
+              └── Send → AI parses and shows extracted results
+                    ├── Results shown as structured cards (type, title, content summary)
+                    │     ├── Owner clicks "Save" → written to knowledge base; card switches to saved state
+                    │     ├── Owner clicks "Edit" → inline editing; confirm to save
+                    │     └── Owner clicks "Discard" → entry not saved; continue entering
+                    └── After saving, the owner can continue entering new content
 ```
 
-#### 5.2.4 知识库条目管理
+#### 5.2.3 Upload File to Knowledge Base
 
 ```
-进入知识库管理页面
-  ├── 页面顶部展示"添加知识条目"按钮，点击展开表单（类型、标题、内容）
-  └── 下方展示已保存的知识条目列表（分页展示，每页 10 条）
-        ├── 支持按类型筛选（技能 / 项目 / 经历 / 教育 / 其他）
-        ├── 支持关键词搜索
-        ├── 底部分页控件（超过 10 条时展示）
-        └── 点击条目卡片
-              ├── 展开查看完整内容
-              └── 点击"删除" → 二次确认弹窗 → 确认后移除
+Click "Upload File" button in the entry interface
+  └── Select a file (PDF / Word / TXT)
+        └── Uploading → progress bar shown
+              └── Upload complete → AI processes in the background
+                    └── Processing done → show extracted entry list (same as last half of 5.2.2)
+                          └── Owner confirms entries individually / in bulk / discards in bulk
 ```
 
-#### 5.2.5 个人信息配置
+#### 5.2.4 Knowledge Entry Management
 
 ```
-点击左侧导航"个人设置"
-  └── 展示配置表单：头像上传、姓名、tagline、联系方式
-        └── 修改后点击"保存"
-              ├── 保存成功 → 顶部提示"已更新"，客户端实时生效
-              └── 保存失败 → 提示错误信息，表单保持修改态
+Go to Knowledge Base page
+  ├── "Add Knowledge Entry" button at the top; click to expand the form (type, title, content)
+  └── Below: list of saved knowledge entries (paginated, 10 per page)
+        ├── Filter by type (skill / project / experience / education / other)
+        ├── Keyword search
+        ├── Pagination controls at the bottom (shown when > 10 entries)
+        └── Click an entry card
+              ├── Expand to view full content
+              └── Click "Delete" → confirmation dialog → remove on confirm
 ```
 
-#### 5.2.6 快捷提示词配置
+#### 5.2.5 Profile Configuration
 
 ```
-点击左侧导航"提示词配置"
-  └── 展示当前启用的初始提示词列表（拖拽可排序）
-        ├── 点击"新增" → 弹窗输入提示词文本 → 确认添加
-        ├── 点击"编辑"→ 内联编辑文本 → 保存
-        ├── 点击"删除" → 二次确认 → 移除
-        └── 切换启用/禁用开关 → 客户端首屏实时生效
+Click "Profile Settings" in the left nav
+  └── Show configuration form: avatar upload, name, tagline, contact info
+        └── Edit and click "Save"
+              ├── Save succeeded → top banner shows "Updated"; changes take effect on the client portal immediately
+              └── Save failed → show error message; form retains edited state
+```
+
+#### 5.2.6 Suggestion Configuration
+
+```
+Click "Suggestion Config" in the left nav
+  └── Show the current list of enabled initial suggestions (drag to reorder)
+        ├── Click "Add" → modal to enter suggestion text → confirm to add
+        ├── Click "Edit" → inline text editing → save
+        ├── Click "Delete" → confirmation → remove
+        └── Toggle enable/disable → takes effect on client portal home screen immediately
 ```
 
 ---
 
-## 6. AI 能力要求
+## 6. AI Capabilities
 
-### 6.1 RAG（检索增强生成）
+### 6.1 RAG (Retrieval-Augmented Generation)
 
-- 客户提问 → 语义检索相关知识条目 → 拼接上下文 → 生成回答
-- 检索策略：向量相似度 + 关键词混合检索
+- Client asks a question → semantic retrieval of relevant knowledge entries → context assembled → answer generated
+- Retrieval strategy: vector similarity + keyword hybrid search
 
-### 6.2 知识提取（管理端）
+### 6.2 Knowledge Extraction (Admin Console)
 
-- 解析上传文档，识别并结构化关键信息
-- 识别意图（如"这是一段项目经历"），归类存储
-- 支持拥有者对提取结果进行确认和修改
+- Parse uploaded documents, identify and structure key information
+- Detect intent (e.g., "this is a project experience section") and categorize for storage
+- Owner can confirm or edit extracted results
 
-### 6.3 多平台兼容
+### 6.3 Multi-Provider Compatibility
 
-- 抽象 AI 服务层，通过配置文件一键切换提供商，不修改业务代码
-- 支持的提供商：
+- Abstract AI service layer; switch providers via config file without changing business code
+- Supported providers:
 
-| 提供商 | 说明 | 状态 |
-|--------|------|------|
-| Google Gemini | 云端模型（gemini-2.0-flash），需 `GOOGLE_AI_API_KEY` | ✅ 默认提供商 |
-| Claude (Anthropic) | 高质量云端模型，需 `ANTHROPIC_API_KEY` | ✅ 已接入 |
-| Mock | 本地模拟，无需 API Key，适合开发调试 | ✅ 默认开发模式 |
-| Ollama（本地模型） | 在本机或内网运行，无需 API Key，数据不出境 | ✅ 可选，非默认 |
+| Provider | Description | Status |
+|----------|-------------|--------|
+| Google Gemini | Cloud model (gemini-2.0-flash); requires `GOOGLE_AI_API_KEY` | ✅ Default provider |
+| Claude (Anthropic) | High-quality cloud model; requires `ANTHROPIC_API_KEY` | ✅ Integrated |
+| Mock | Local simulation; no API key needed; ideal for development/debugging | ✅ Default dev mode |
+| Ollama (local model) | Runs on local machine or intranet; no API key; data stays on-premise | ✅ Optional, non-default |
 
-- 配置方式：`application.yml` 中设置 `ai.provider: google / claude / ollama`，云端提供商可通过 `ai.mock: true` 启用 Mock 模式
-
----
-
-## 7. 数据模型（概念层）
-
-| 实体 | 关键字段 |
-|------|----------|
-| Owner（拥有者） | 头像、姓名、tagline、联系方式、配置信息 |
-| ClientUser（客户用户） | SSO 来源、第三方 ID、昵称、头像、创建时间 |
-| KnowledgeEntry（知识条目） | 类型、标题、内容文本、向量嵌入、来源文件、创建时间 |
-| Document（上传文档） | 文件名、类型、大小、处理状态、关联知识条目 |
-| Conversation（对话记录） | 用户ID（可为空=游客）、来源（客户/管理员）、消息列表、创建时间 |
-| Message（消息） | 会话ID、角色（user/assistant）、正文、关联动态提示词列表、创建时间 |
-| PromptSuggestion（初始提示词） | 展示文本、排序、启用状态（管理端配置） |
-| DynamicPrompt（动态提示词） | 关联消息ID、提示词文本、生成时间 |
+- Configuration: set `ai.provider: google / claude / ollama` in `application.yml`; cloud providers support mock mode via `ai.mock: true`
 
 ---
 
-## 8. 非功能性需求
+## 7. Data Model (Conceptual)
 
-| 维度 | 要求 |
-|------|------|
-| 性能 | AI 回复支持流式输出，首字响应 < 2s |
-| 安全 | 管理端接口全部鉴权；API Key 不暴露在前端 |
-| 部署 | Docker Compose 一键启动所有服务 |
-| 扩展性 | 知识库支持多拥有者（SaaS 扩展预留，MVP 阶段单用户） |
-| 可用性 | 客户端无需登录，直接访问 |
-
----
-
-## 9. 技术选型（参考）
-
-> 以下为建议方向，具体方案待技术文档阶段确认
-
-| 层次 | 建议 |
-|------|------|
-| 前端 | React + Next.js (TypeScript) |
-| 后端 | Java Spring Boot |
-| AI 接入 | Spring AI（支持多平台切换） |
-| 向量存储 | pgvector（PostgreSQL 扩展）或 Milvus |
-| 文件存储 | 本地挂载 / MinIO |
-| 部署 | Docker Compose |
+| Entity | Key Fields |
+|--------|-----------|
+| Owner | Avatar, name, tagline, contact info, configuration |
+| ClientUser | SSO provider, third-party ID, nickname, avatar, created at |
+| KnowledgeEntry | Type, title, content text, vector embedding, source document, created at |
+| Document | Filename, type, size, processing status, linked knowledge entries |
+| Conversation | User ID (nullable = guest), source (client/admin), message list, created at |
+| Message | Conversation ID, role (user/assistant), body, linked dynamic suggestions, created at |
+| PromptSuggestion | Display text, sort order, enabled status (configured in admin console) |
+| DynamicPrompt | Linked message ID, suggestion text, generated at |
 
 ---
 
-## 10. MVP 范围（第一期）
+## 8. Non-Functional Requirements
 
-**包含**：
-- 客户端：聊天对话、快捷提示词、拥有者简介展示
-- 管理端：登录、文本/文件录入知识库、知识条目管理、个人信息配置
-- AI：RAG 问答 + 知识提取
-- 部署：Docker Compose
-
-**暂不包含**：
-- 多语言
-- 对话记录查看
-- 图片内容理解
-- 多用户/SaaS
+| Dimension | Requirement |
+|-----------|-------------|
+| Performance | AI replies support streaming output; time-to-first-token < 2s |
+| Security | All admin endpoints require authentication; API keys not exposed in the frontend |
+| Deployment | Docker Compose one-command startup for all services |
+| Scalability | Knowledge base supports multiple owners (SaaS extension reserved; single-user in MVP) |
+| Availability | Client portal accessible without login |
 
 ---
 
-## 11. 待确认问题
+## 9. Tech Stack (Reference)
 
-- [x] 产品是否需要支持多个拥有者账号（SaaS 模式），还是单用户？→ **支持多 Owner**，通过 URL `/{username}/chat` 隔离，超级管理面板统一管理账号
-- [ ] 客户端是否需要域名定制（每个拥有者独立域名）？
-- [ ] AI 回复中是否允许展示图片（如作品集截图）？
-- [ ] 是否需要拥有者审核 AI 回答的能力（查看对话记录并干预）？
+> Suggestions below; final choices confirmed in the technical design document
+
+| Layer | Recommendation |
+|-------|---------------|
+| Frontend | React + Next.js (TypeScript) |
+| Backend | Java Spring Boot |
+| AI integration | Spring AI (multi-provider switching) |
+| Vector storage | pgvector (PostgreSQL extension) or Milvus |
+| File storage | Local mount / MinIO |
+| Deployment | Docker Compose |
+
+---
+
+## 10. MVP Scope (Phase 1)
+
+**Included**:
+- Client portal: chat, quick suggestions, owner profile display
+- Admin console: login, text/file knowledge base entry, entry management, profile configuration
+- AI: RAG Q&A + knowledge extraction
+- Deployment: Docker Compose
+
+**Excluded**:
+- Multi-language support
+- Conversation history viewer
+- Image content understanding
+- Multi-user / SaaS
+
+---
+
+## 11. Open Questions
+
+- [x] Should the product support multiple owner accounts (SaaS mode) or single-user? → **Multiple owners supported**, isolated by URL `/{username}/chat`; super admin panel manages all accounts
+- [ ] Is custom domain support needed for each owner (each owner has their own domain)?
+- [ ] Should the AI be allowed to display images in replies (e.g., portfolio screenshots)?
+- [ ] Do owners need the ability to review and intervene in AI conversations (view history and provide corrections)?

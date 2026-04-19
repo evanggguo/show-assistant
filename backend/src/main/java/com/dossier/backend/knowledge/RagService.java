@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Phase 3 — RAG（检索增强生成）服务
- * 将用户查询向量化后，通过余弦相似度检索最相关的知识条目。
+ * Phase 3 — RAG (Retrieval-Augmented Generation) service.
+ * Embeds the user query and retrieves the most relevant knowledge entries by cosine similarity.
  */
 @Slf4j
 @Service
@@ -24,12 +24,12 @@ public class RagService {
     private final EmbeddingService embeddingService;
 
     /**
-     * 检索与 query 相关的知识条目
+     * Retrieve knowledge entries relevant to the query.
      *
-     * @param ownerId Owner ID
-     * @param query   用户查询文本
-     * @param topK    最多返回条数
-     * @return 相关知识条目列表（embedding 不可用时返回空列表）
+     * @param ownerId owner ID
+     * @param query   user query text
+     * @param topK    maximum number of results to return
+     * @return relevant entries, or an empty list if embedding is unavailable
      */
     public List<KnowledgeEntryDto> retrieve(Long ownerId, String query, int topK) {
         log.debug("RAG retrieve: ownerId={}, query='{}', topK={}", ownerId, query, topK);
@@ -48,16 +48,12 @@ public class RagService {
         return entries.stream().map(this::mapToDto).toList();
     }
 
-    /**
-     * 便捷重载，使用默认 topK=5
-     */
+    /** Convenience overload using the default topK=5. */
     public List<KnowledgeEntryDto> retrieve(Long ownerId, String query) {
         return retrieve(ownerId, query, 5);
     }
 
-    /**
-     * 将 float[] 向量格式化为 pgvector 字符串格式 "[x1,x2,...,xn]"
-     */
+    /** Format a float[] vector as a pgvector string "[x1,x2,...,xn]". */
     private String toVectorString(float[] embedding) {
         return IntStream.range(0, embedding.length)
             .mapToObj(i -> String.valueOf(embedding[i]))

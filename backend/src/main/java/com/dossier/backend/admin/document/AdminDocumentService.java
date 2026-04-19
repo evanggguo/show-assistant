@@ -27,9 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * 管理端文档上传和处理服务
- */
+/** Admin document upload and processing service. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,12 +55,12 @@ public class AdminDocumentService {
     @Transactional
     public DocumentResponse uploadDocument(MultipartFile file) throws IOException {
         String originalFilename = StringUtils.cleanPath(
-            Objects.requireNonNull(file.getOriginalFilename(), "文件名不能为空"));
+            Objects.requireNonNull(file.getOriginalFilename(), "Filename must not be empty"));
 
         String extension = getExtension(originalFilename);
         if (!ALLOWED_TYPES.contains(extension)) {
             throw new BusinessException("UNSUPPORTED_FILE_TYPE",
-                "不支持的文件类型，仅支持 PDF、TXT、DOCX、PPT、PPTX");
+                "Unsupported file type. Only PDF, TXT, DOCX, PPT, and PPTX are allowed");
         }
 
         String storedFilename = UUID.randomUUID() + "." + extension;
@@ -104,11 +102,11 @@ public class AdminDocumentService {
         Document doc = documentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Document", id));
 
-        // 先删除关联的知识库条目
+        // Delete associated knowledge entries first
         knowledgeRepository.deleteBySourceDoc(id);
         log.info("Deleted knowledge entries for documentId={}", id);
 
-        // 删除物理文件
+        // Delete the physical file
         try {
             Files.deleteIfExists(Paths.get(doc.getFilePath()));
         } catch (IOException e) {

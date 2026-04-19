@@ -18,11 +18,11 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * OwnerService 单元测试
- * 覆盖 Owner 简介查询和初始 suggestions 列表的获取场景
+ * Unit tests for OwnerService.
+ * Covers owner profile retrieval and initial suggestions list scenarios.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("OwnerService 单元测试")
+@DisplayName("OwnerService Unit Tests")
 class OwnerServiceTest {
 
     @Mock
@@ -40,8 +40,8 @@ class OwnerServiceTest {
     void setUp() {
         testOwner = Owner.builder()
             .id(1L)
-            .name("测试主人")
-            .tagline("全栈开发者，热爱技术")
+            .name("Test Owner")
+            .tagline("Full-stack Developer, passionate about tech")
             .avatarUrl("https://example.com/avatar.jpg")
             .build();
     }
@@ -49,7 +49,7 @@ class OwnerServiceTest {
     // ===== getOwnerProfile =====
 
     @Test
-    @DisplayName("getOwnerProfile：owner 存在时正确映射为 OwnerProfileResponse")
+    @DisplayName("getOwnerProfile: maps to OwnerProfileResponse correctly when owner exists")
     void should_return_owner_profile_when_owner_exists() {
         // given
         when(ownerRepository.findById(1L)).thenReturn(Optional.of(testOwner));
@@ -60,13 +60,13 @@ class OwnerServiceTest {
         // then
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getName()).isEqualTo("测试主人");
-        assertThat(response.getTagline()).isEqualTo("全栈开发者，热爱技术");
+        assertThat(response.getName()).isEqualTo("Test Owner");
+        assertThat(response.getTagline()).isEqualTo("Full-stack Developer, passionate about tech");
         assertThat(response.getAvatarUrl()).isEqualTo("https://example.com/avatar.jpg");
     }
 
     @Test
-    @DisplayName("getOwnerProfile：owner 不存在时抛 ResourceNotFoundException")
+    @DisplayName("getOwnerProfile: throws ResourceNotFoundException when owner is not found")
     void should_throw_ResourceNotFoundException_when_owner_not_found() {
         // given
         when(ownerRepository.findById(1L)).thenReturn(Optional.empty());
@@ -77,10 +77,10 @@ class OwnerServiceTest {
     }
 
     @Test
-    @DisplayName("getOwnerProfile(ownerId)：指定 owner 存在时正确返回")
+    @DisplayName("getOwnerProfile(ownerId): returns correct profile for the specified owner")
     void should_return_profile_for_specific_owner_id() {
         // given
-        Owner owner2 = Owner.builder().id(2L).name("另一位主人").build();
+        Owner owner2 = Owner.builder().id(2L).name("Another Owner").build();
         when(ownerRepository.findById(2L)).thenReturn(Optional.of(owner2));
 
         // when
@@ -88,11 +88,11 @@ class OwnerServiceTest {
 
         // then
         assertThat(response.getId()).isEqualTo(2L);
-        assertThat(response.getName()).isEqualTo("另一位主人");
+        assertThat(response.getName()).isEqualTo("Another Owner");
     }
 
     @Test
-    @DisplayName("getOwnerProfile(ownerId)：指定 owner 不存在时抛 ResourceNotFoundException")
+    @DisplayName("getOwnerProfile(ownerId): throws ResourceNotFoundException when specified owner is not found")
     void should_throw_when_specific_owner_not_found() {
         // given
         when(ownerRepository.findById(99L)).thenReturn(Optional.empty());
@@ -105,15 +105,15 @@ class OwnerServiceTest {
     // ===== getInitialSuggestions =====
 
     @Test
-    @DisplayName("getInitialSuggestions：返回按 sortOrder 排序且 enabled=true 的 suggestions 列表")
+    @DisplayName("getInitialSuggestions: returns enabled suggestions sorted by sortOrder")
     void should_return_sorted_enabled_suggestions() {
         // given
         PromptSuggestion ps1 = PromptSuggestion.builder()
-            .id(1L).text("介绍一下你自己").sortOrder(0).enabled(true).build();
+            .id(1L).text("Tell me about yourself").sortOrder(0).enabled(true).build();
         PromptSuggestion ps2 = PromptSuggestion.builder()
-            .id(2L).text("你最近做了什么项目").sortOrder(1).enabled(true).build();
+            .id(2L).text("What projects have you worked on recently?").sortOrder(1).enabled(true).build();
         PromptSuggestion ps3 = PromptSuggestion.builder()
-            .id(3L).text("你擅长哪些技术").sortOrder(2).enabled(true).build();
+            .id(3L).text("What are your strongest technical skills?").sortOrder(2).enabled(true).build();
 
         when(promptSuggestionRepository.findByOwnerIdAndEnabledTrueOrderBySortOrderAsc(1L))
             .thenReturn(List.of(ps1, ps2, ps3));
@@ -123,14 +123,14 @@ class OwnerServiceTest {
 
         // then
         assertThat(suggestions).containsExactly(
-            "介绍一下你自己",
-            "你最近做了什么项目",
-            "你擅长哪些技术"
+            "Tell me about yourself",
+            "What projects have you worked on recently?",
+            "What are your strongest technical skills?"
         );
     }
 
     @Test
-    @DisplayName("getInitialSuggestions：无可用 suggestions 时返回空列表")
+    @DisplayName("getInitialSuggestions: returns empty list when no suggestions are available")
     void should_return_empty_list_when_no_suggestions() {
         // given
         when(promptSuggestionRepository.findByOwnerIdAndEnabledTrueOrderBySortOrderAsc(1L))
@@ -144,11 +144,11 @@ class OwnerServiceTest {
     }
 
     @Test
-    @DisplayName("getInitialSuggestions(ownerId)：按指定 ownerId 查询")
+    @DisplayName("getInitialSuggestions(ownerId): queries by the specified ownerId")
     void should_query_suggestions_by_owner_id() {
         // given
         PromptSuggestion ps = PromptSuggestion.builder()
-            .id(10L).text("关于我").sortOrder(0).enabled(true).build();
+            .id(10L).text("About me").sortOrder(0).enabled(true).build();
         when(promptSuggestionRepository.findByOwnerIdAndEnabledTrueOrderBySortOrderAsc(2L))
             .thenReturn(List.of(ps));
 
@@ -156,6 +156,6 @@ class OwnerServiceTest {
         List<String> suggestions = ownerService.getInitialSuggestions(2L);
 
         // then
-        assertThat(suggestions).containsExactly("关于我");
+        assertThat(suggestions).containsExactly("About me");
     }
 }

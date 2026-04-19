@@ -7,8 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * TDD 5.1 — PromptSuggestion 实体
- * Owner 预设的初始引导提示词，展示在对话界面供访客快速选择
+ * TDD 5.1 — PromptSuggestion entity
+ * Owner-configured initial prompt suggestions displayed on the chat UI for visitors to quickly select
  */
 @Data
 @Builder

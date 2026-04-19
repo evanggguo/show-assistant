@@ -12,8 +12,8 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 
 /**
- * TDD 5.1 — Owner 实体
- * 展示者/产品拥有者的核心信息，每个 Dossier 实例对应一个 Owner
+ * TDD 5.1 — Owner entity
+ * Core information of the portfolio owner; each Dossier instance corresponds to one Owner
  */
 @Data
 @Builder
@@ -44,11 +44,11 @@ public class Owner {
     @Column(name = "config", columnDefinition = "jsonb")
     private Map<String, Object> config;
 
-    /** 登录用户名（仅英文/数字，唯一） */
+    /** Login username (alphanumeric only, unique) */
     @Column(name = "username", unique = true, length = 50)
     private String username;
 
-    /** BCrypt 密码哈希 */
+    /** BCrypt password hash */
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 

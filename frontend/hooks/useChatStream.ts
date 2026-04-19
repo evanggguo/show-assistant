@@ -1,15 +1,15 @@
 'use client'
 
 /**
- * useChatStream — 核心 SSE 流式对话 Hook
- * 对应 TDD 4.3.3
+ * useChatStream — Core SSE streaming chat hook.
+ * Corresponds to TDD 4.3.3.
  *
- * 设计要点：
- * 1. 使用 fetch + ReadableStream 接收 SSE，而非 EventSource
- *    原因：EventSource 只支持 GET，无法携带 JSON body
- * 2. 三种 SSE 事件：token / done / error
- * 3. 游客模式：历史消息按 ownerUsername 存 localStorage，实现多 owner 数据隔离
- * 4. done 事件后，将 streamingText 转为正式 Message 加入列表
+ * Design notes:
+ * 1. Uses fetch + ReadableStream to receive SSE instead of EventSource
+ *    (EventSource only supports GET and cannot carry a JSON body)
+ * 2. Three SSE event types: token / done / error
+ * 3. Guest mode: message history is stored in localStorage keyed by ownerUsername for isolation
+ * 4. After the done event, streamingText is committed as a formal Message entry
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -20,7 +20,7 @@ import { toFriendlyMessage } from '@/lib/error-utils'
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
-// ─── SSE 解析工具 ─────────────────────────────────────────────
+// ─── SSE Parser ───────────────────────────────────────────────
 
 interface SseEvent {
   event: string
@@ -45,13 +45,13 @@ function parseSSEChunk(chunk: string): SseEvent[] {
     try {
       events.push({ event: eventType, data: JSON.parse(dataStr) })
     } catch {
-      // JSON 解析失败时跳过该事件
+      // Skip events with unparseable JSON
     }
   }
   return events
 }
 
-// ─── Hook ─────────────────────────────────────────────────────
+// ─── Hook ────────────────────────────────────────────────────
 
 export interface UseChatStreamReturn {
   messages: Message[]
@@ -66,10 +66,10 @@ export interface UseChatStreamReturn {
 }
 
 /**
- * 管理流式对话状态的核心 Hook
+ * Core hook for managing streaming chat state.
  *
- * @param ownerUsername   访问路径中的 owner 用户名，用于路由和 localStorage 隔离
- * @param initialSuggestions 首屏展示的初始提示词
+ * @param ownerUsername      Owner username from the URL path, used for routing and localStorage isolation
+ * @param initialSuggestions Initial prompt suggestions displayed on the first screen
  */
 export function useChatStream(
   ownerUsername: string,
@@ -82,7 +82,7 @@ export function useChatStream(
     if (stored.length > 0) {
       setMessages(stored)
     }
-  // 只在 ownerUsername 变化时重新加载，不依赖 messages
+  // Reload only when ownerUsername changes, not on every messages update
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerUsername])
 

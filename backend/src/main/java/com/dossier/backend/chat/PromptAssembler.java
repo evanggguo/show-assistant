@@ -8,13 +8,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * TDD 4.3.2 — System Prompt 构建器
+ * TDD 4.3.2 — System Prompt builder
  *
- * 防幻觉设计：
- * - 始终注入"行为准则"段落，强制 AI 只能基于知识库内容回答
- * - RAG 有内容时：注入知识条目，AI 必须基于此作答
- * - RAG 为空时：明确声明无可用内容，AI 必须礼貌告知用户并引导联系 owner
- * - 对于问候等通用对话例外处理，避免过度拒绝
+ * Anti-hallucination design:
+ * - Always inject a "Rules" section to force the AI to answer only from the knowledge base
+ * - When RAG has content: inject knowledge entries; AI must base its answer on them
+ * - When RAG is empty: explicitly state no relevant content exists; AI must politely inform the user and suggest contacting the owner
+ * - Greetings and small talk are exempt to avoid over-rejection
  */
 @Slf4j
 @Component
@@ -35,15 +35,15 @@ public class PromptAssembler {
         boolean hasRagContent = retrievedContext != null && !retrievedContext.isEmpty();
         String detectedLang = detectLanguage(userMessage);
 
-        // ── 身份设定 ───────────────────────────────────────────────
-        sb.append("你是 ").append(ownerProfile.getName()).append(" 的 AI 个人助手。\n");
+        // ── Identity ──────────────────────────────────────────────
+        sb.append("You are the AI personal assistant of ").append(ownerProfile.getName()).append(".\n");
         if (ownerProfile.getTagline() != null && !ownerProfile.getTagline().isBlank()) {
-            sb.append(ownerProfile.getName()).append(" 的简介：")
+            sb.append(ownerProfile.getName()).append("'s bio: ")
               .append(ownerProfile.getTagline()).append("\n");
         }
         sb.append("\n");
 
-        // ── 行为准则（始终注入，核心防幻觉约束） ───────────────────
+        // ── Rules (always injected — core anti-hallucination constraint) ──
         sb.append("## Rules (MUST follow strictly)\n");
         sb.append("1. **LANGUAGE**: Always reply in the SAME language the visitor used. ");
         sb.append("If the visitor writes in English, reply in English. ");
@@ -55,7 +55,7 @@ public class PromptAssembler {
         sb.append("6. If the knowledge base has no answer, politely say so and suggest contacting ")
           .append(ownerProfile.getName()).append(" directly.\n\n");
 
-        // ── Owner 自定义指令（沙盒化，置于 Rules 之后确保无法覆盖）──
+        // ── Owner custom instructions (sandboxed — placed after Rules so they cannot override them) ──
         if (ownerProfile.getCustomPrompt() != null && !ownerProfile.getCustomPrompt().isBlank()) {
             sb.append("## ").append(ownerProfile.getName()).append("'s Persona Notes\n");
             sb.append("The following are supplementary instructions from ").append(ownerProfile.getName())
@@ -65,12 +65,12 @@ public class PromptAssembler {
             sb.append("</owner-instructions>\n\n");
         }
 
-        // ── 知识库（有内容 / 无内容 两种场景） ──────────────────────
-        sb.append("## ").append(ownerProfile.getName()).append(" 的知识库\n");
+        // ── Knowledge base (two scenarios: with content / empty) ──
+        sb.append("## ").append(ownerProfile.getName()).append("'s Knowledge Base\n");
 
         if (hasRagContent) {
-            sb.append("以下是关于 ").append(ownerProfile.getName())
-              .append(" 的参考资料，你的所有具体回答必须严格基于此内容：\n\n");
+            sb.append("The following are reference materials about ").append(ownerProfile.getName())
+              .append(". All specific answers you give MUST be strictly based on this content:\n\n");
             for (int i = 0; i < retrievedContext.size(); i++) {
                 KnowledgeEntryDto entry = retrievedContext.get(i);
                 sb.append(i + 1).append(". ");
@@ -80,12 +80,12 @@ public class PromptAssembler {
                 sb.append(entry.getContent()).append("\n\n");
             }
         } else {
-            sb.append("当前暂无与该问题相关的知识库内容。\n");
-            sb.append("请告知访客你暂时无法提供该信息，并友好地建议其直接联系 ")
-              .append(ownerProfile.getName()).append(" 获取更多信息。\n\n");
+            sb.append("There is currently no relevant knowledge base content for this question.\n");
+            sb.append("Please inform the visitor that you cannot provide this information, and kindly suggest they contact ")
+              .append(ownerProfile.getName()).append(" directly for more details.\n\n");
         }
 
-        // ── 工具调用指令（仅在提供商支持 Function Calling 时注入） ──
+        // ── Tool calling instruction (only injected when the provider supports Function Calling) ──
         if (includeToolInstruction) {
             sb.append("## Important Instruction\n");
             sb.append("After completing your answer, you MUST call the `suggest_followups` tool ");
@@ -94,10 +94,10 @@ public class PromptAssembler {
             sb.append("Make them natural and valuable to guide the visitor further.\n");
         }
 
-        // ── 语言强制指令（置于末尾，优先级最高）──────────────────────
+        // ── Final language directive (placed last — highest priority) ──
         sb.append("\n## FINAL LANGUAGE DIRECTIVE\n");
         if ("zh".equals(detectedLang)) {
-            sb.append("⚠️ CRITICAL: The visitor wrote in Chinese. Your entire response MUST be in Chinese (中文). ");
+            sb.append("⚠️ CRITICAL: The visitor wrote in Chinese. Your entire response MUST be in Chinese (Simplified Chinese / 中文). ");
             sb.append("Use the knowledge base content above as your source, and present it in Chinese.\n");
         } else {
             sb.append("⚠️ CRITICAL: The visitor wrote in English. Your entire response MUST be in English. ");
@@ -111,9 +111,7 @@ public class PromptAssembler {
         return prompt;
     }
 
-    /**
-     * 简单语言检测：超过 20% 为 CJK 字符则判断为中文，否则为英文
-     */
+    /** Simple language detection: if more than 20% of characters are CJK, treat as Chinese; otherwise English. */
     private static String detectLanguage(String text) {
         if (text == null || text.isBlank()) return "zh";
         long cjk = text.chars()

@@ -8,20 +8,20 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * TDD 5.1 — KnowledgeEntry 数据访问层
- * Phase 3 将添加向量相似度查询方法
+ * TDD 5.1 — KnowledgeEntry data access layer
+ * Phase 3 will add vector similarity query methods
  */
 @Repository
 public interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long> {
 
     /**
-     * TDD 4.2 — Phase 3 预留：按余弦相似度查询最近邻知识条目
-     * 当前 Phase 2 不调用此方法，占位供 Phase 3 实现
+     * TDD 4.2 — Reserved for Phase 3: query nearest-neighbor knowledge entries by cosine similarity
+     * Not called in Phase 2; placeholder for Phase 3 implementation
      *
      * @param ownerId   Owner ID
-     * @param embedding 查询向量
-     * @param limit     返回条数
-     * @return 相似知识条目列表
+     * @param embedding query vector
+     * @param limit     number of results to return
+     * @return list of similar knowledge entries
      */
     @Query(value = """
         SELECT * FROM knowledge_entries
@@ -36,7 +36,7 @@ public interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long>
     );
 
     /**
-     * 查询指定 Owner 的所有知识条目
+     * Query all knowledge entries for the specified owner
      */
     List<KnowledgeEntry> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
 

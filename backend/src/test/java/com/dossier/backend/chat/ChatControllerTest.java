@@ -13,11 +13,11 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * ChatController 单元测试
- * 验证控制器正确创建 SseEmitter 并调用 chatService.handleStream
+ * Unit tests for ChatController.
+ * Verifies that the controller correctly creates a SseEmitter and calls chatService.handleStream.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ChatController 单元测试")
+@DisplayName("ChatController Unit Tests")
 class ChatControllerTest {
 
     @Mock
@@ -27,10 +27,10 @@ class ChatControllerTest {
     private ChatController chatController;
 
     @Test
-    @DisplayName("POST /api/chat/stream：返回 SseEmitter，chatService.handleStream 被调用")
+    @DisplayName("POST /api/chat/stream: returns SseEmitter and chatService.handleStream is called")
     void should_return_sse_emitter_and_call_handleStream() {
         // given
-        ChatRequest req = new ChatRequest(null, "你好", null);
+        ChatRequest req = new ChatRequest(null, "hello", null);
         SseEmitter mockEmitter = mock(SseEmitter.class);
         when(chatService.createEmitter()).thenReturn(mockEmitter);
 
@@ -44,10 +44,10 @@ class ChatControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/chat/stream：有 conversationId 的请求，同样返回 SseEmitter 并调用 handleStream")
+    @DisplayName("POST /api/chat/stream: request with conversationId also returns SseEmitter and calls handleStream")
     void should_handle_request_with_conversation_id() {
         // given
-        ChatRequest req = new ChatRequest(42L, "继续对话", null);
+        ChatRequest req = new ChatRequest(42L, "continue conversation", null);
         SseEmitter mockEmitter = mock(SseEmitter.class);
         when(chatService.createEmitter()).thenReturn(mockEmitter);
 

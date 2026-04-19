@@ -16,12 +16,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.List;
 
 /**
- * 客户端公开接口 — 基于 owner username 路由，支持多 owner 数据隔离
+ * Client public API — routed by owner username, supports multi-owner data isolation.
  *
- * 路由：
- *   GET  /api/owners/{username}/profile       — owner 公开简介
- *   GET  /api/owners/{username}/suggestions   — 初始提示词
- *   POST /api/owners/{username}/chat/stream   — SSE 流式对话
+ * Routes:
+ *   GET  /api/owners/{username}/profile       — owner public profile
+ *   GET  /api/owners/{username}/suggestions   — initial suggestions
+ *   POST /api/owners/{username}/chat/stream   — SSE streaming chat
  */
 @Slf4j
 @RestController
@@ -32,18 +32,14 @@ public class ClientController {
     private final OwnerService ownerService;
     private final ChatService chatService;
 
-    /**
-     * 获取指定 owner 的公开简介
-     */
+    /** Get the public profile of the specified owner. */
     @GetMapping("/profile")
     public ApiResponse<OwnerProfileResponse> getProfile(@PathVariable String username) {
         Owner owner = ownerService.getOwnerByUsername(username);
         return ApiResponse.ok(ownerService.getOwnerProfile(owner.getId()));
     }
 
-    /**
-     * 获取指定 owner 的初始提示词列表
-     */
+    /** Get the initial suggestion list for the specified owner. */
     @GetMapping("/suggestions")
     public ApiResponse<List<String>> getSuggestions(@PathVariable String username) {
         Owner owner = ownerService.getOwnerByUsername(username);
@@ -51,8 +47,8 @@ public class ClientController {
     }
 
     /**
-     * 指定 owner 的 SSE 流式对话入口
-     * 所有对话数据（会话、消息、RAG 检索）均隔离在该 owner 下
+     * SSE streaming chat entry point for the specified owner.
+     * All conversation data (sessions, messages, RAG retrieval) is isolated to this owner.
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(

@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * MessageBubble — 单条消息气泡
- * 对应 TDD 1.4 消息界面设计
+ * MessageBubble — Single message bubble.
+ * Corresponds to TDD 1.4 message UI design.
  *
- * - role=user：右对齐，灰色背景
- * - role=assistant：左对齐，白色背景，Markdown 渲染
- * - assistant 消息下方展示动态提示词卡片（有 suggestions 时）
+ * - role=user: right-aligned, gray background
+ * - role=assistant: left-aligned, white background, Markdown rendered
+ * - Dynamic suggestion cards shown below assistant messages (when suggestions exist)
  */
 
 import React from 'react'
@@ -16,9 +16,9 @@ import SuggestionCards from './SuggestionCards'
 
 interface MessageBubbleProps {
   message: Message
-  /** 点击提示词卡片的回调 */
+  /** Callback when a suggestion card is clicked */
   onSuggestionSelect?: (text: string) => void
-  /** 是否禁用提示词卡片（流式输出中） */
+  /** Whether suggestion cards are disabled (during streaming) */
   suggestionsDisabled?: boolean
 }
 
@@ -33,7 +33,7 @@ export default function MessageBubble({
     return (
       <div className="flex justify-end mb-4">
         <div className="max-w-[85%] sm:max-w-[75%]">
-          {/* 用户消息：右对齐，灰色背景圆角气泡 */}
+          {/* User message: right-aligned, rounded gray bubble */}
           <div className="bg-gray-100 rounded-2xl rounded-tr-sm px-4 py-3">
             <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
               {message.content}
@@ -44,17 +44,17 @@ export default function MessageBubble({
     )
   }
 
-  // assistant 消息
+  // Assistant message
   return (
     <div className="flex flex-col mb-6">
-      {/* AI 回答：全宽展示，无气泡边框，参考主流 AI 产品样式 */}
+      {/* AI response: full width, no bubble border, following mainstream AI product styles */}
       <div className="w-full">
         <div className="prose prose-sm max-w-none text-gray-800">
           <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
       </div>
 
-      {/* 动态提示词卡片（done 事件后展示） */}
+      {/* Dynamic suggestion cards (shown after the done event) */}
       {message.suggestions && message.suggestions.length > 0 && onSuggestionSelect && (
         <div className="mt-3 w-full">
           <SuggestionCards

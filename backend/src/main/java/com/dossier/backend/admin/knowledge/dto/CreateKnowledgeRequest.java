@@ -7,11 +7,11 @@ import lombok.Data;
 @Data
 public class CreateKnowledgeRequest {
 
-    @NotNull(message = "类型不能为空")
+    @NotNull(message = "Type must not be null")
     private String type;
 
     private String title;
 
-    @NotBlank(message = "内容不能为空")
+    @NotBlank(message = "Content must not be blank")
     private String content;
 }

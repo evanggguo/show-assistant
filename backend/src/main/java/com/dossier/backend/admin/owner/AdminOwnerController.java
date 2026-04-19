@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 管理端 Owner 信息接口
- */
+/** Admin owner profile API. */
 @RestController
 @RequestMapping("/api/admin/owner")
 @RequiredArgsConstructor

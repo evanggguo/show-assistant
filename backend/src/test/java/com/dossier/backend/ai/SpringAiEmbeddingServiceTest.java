@@ -11,72 +11,72 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * SpringAiEmbeddingService 单元测试
- * 覆盖 embeddingModel 为 null、正常调用和异常降级场景
+ * Unit tests for SpringAiEmbeddingService.
+ * Covers null embeddingModel, normal invocation, and exception fallback scenarios.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SpringAiEmbeddingService 单元测试")
+@DisplayName("SpringAiEmbeddingService Unit Tests")
 class SpringAiEmbeddingServiceTest {
 
     @Mock
     private EmbeddingModel embeddingModel;
 
     @Test
-    @DisplayName("embed：embeddingModel 为 null 时返回 new float[0]（降级）")
+    @DisplayName("embed: returns new float[0] (fallback) when embeddingModel is null")
     void should_return_empty_vector_when_embedding_model_is_null() {
         // given
         SpringAiEmbeddingService service = new SpringAiEmbeddingService(null);
 
         // when
-        float[] result = service.embed("测试文本");
+        float[] result = service.embed("test text");
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("embed：embeddingModel 正常时返回向量")
+    @DisplayName("embed: returns the vector when embeddingModel works normally")
     void should_return_vector_when_embedding_model_works() {
         // given
         float[] expectedVector = {0.1f, 0.2f, 0.3f, 0.4f};
-        when(embeddingModel.embed("测试文本")).thenReturn(expectedVector);
+        when(embeddingModel.embed("test text")).thenReturn(expectedVector);
         SpringAiEmbeddingService service = new SpringAiEmbeddingService(embeddingModel);
 
         // when
-        float[] result = service.embed("测试文本");
+        float[] result = service.embed("test text");
 
         // then
         assertThat(result).containsExactly(0.1f, 0.2f, 0.3f, 0.4f);
-        verify(embeddingModel).embed("测试文本");
+        verify(embeddingModel).embed("test text");
     }
 
     @Test
-    @DisplayName("embed：embeddingModel.embed() 抛异常时，返回 new float[0]（降级）")
+    @DisplayName("embed: returns new float[0] (fallback) when embeddingModel.embed() throws an exception")
     void should_return_empty_vector_when_embedding_throws_exception() {
         // given
-        when(embeddingModel.embed(anyString())).thenThrow(new RuntimeException("网络超时"));
+        when(embeddingModel.embed(anyString())).thenThrow(new RuntimeException("network timeout"));
         SpringAiEmbeddingService service = new SpringAiEmbeddingService(embeddingModel);
 
         // when
-        float[] result = service.embed("测试文本");
+        float[] result = service.embed("test text");
 
         // then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("embed：embeddingModel 正常返回高维向量")
+    @DisplayName("embed: returns a high-dimensional vector correctly")
     void should_return_high_dimensional_vector() {
         // given
-        float[] highDimVector = new float[1536]; // OpenAI 嵌入维度
+        float[] highDimVector = new float[1536]; // OpenAI embedding dimension
         for (int i = 0; i < highDimVector.length; i++) {
             highDimVector[i] = (float) i / 1536;
         }
-        when(embeddingModel.embed("长文本")).thenReturn(highDimVector);
+        when(embeddingModel.embed("long text")).thenReturn(highDimVector);
         SpringAiEmbeddingService service = new SpringAiEmbeddingService(embeddingModel);
 
         // when
-        float[] result = service.embed("长文本");
+        float[] result = service.embed("long text");
 
         // then
         assertThat(result).hasSize(1536);

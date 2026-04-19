@@ -15,9 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * 管理端提示词 CRUD 服务
- */
+/** Admin suggestion CRUD service. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

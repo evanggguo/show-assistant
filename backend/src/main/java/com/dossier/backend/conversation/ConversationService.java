@@ -15,8 +15,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * TDD 4.3 — 会话管理服务
- * 负责会话的创建、消息保存和历史记录加载
+ * TDD 4.3 — Conversation management service.
+ * Handles conversation creation, message saving, and history loading.
  */
 @Slf4j
 @Service
@@ -29,12 +29,8 @@ public class ConversationService {
     private final OwnerRepository ownerRepository;
 
     /**
-     * TDD 4.3.1 — 创建新会话
-     * 为指定 Owner 创建一个新会话，userId 为 null 时表示游客会话
-     *
-     * @param ownerId 拥有者 ID
-     * @param userId  来访用户 ID，游客为 null
-     * @return 新创建的会话实体
+     * TDD 4.3.1 — Create a new conversation.
+     * Creates a conversation for the given owner; userId is null for guest sessions.
      */
     @Transactional
     public Conversation createConversation(Long ownerId, Long userId) {
@@ -52,14 +48,7 @@ public class ConversationService {
         return saved;
     }
 
-    /**
-     * TDD 4.3.2 — 保存用户消息
-     * 将访客发送的消息持久化到数据库
-     *
-     * @param conversationId 所属会话 ID
-     * @param content        消息内容
-     * @return 保存后的 Message 实体
-     */
+    /** TDD 4.3.2 — Persist a user message to the database. */
     @Transactional
     public Message saveUserMessage(Long conversationId, String content) {
         Conversation conversation = getConversationEntity(conversationId);
@@ -74,13 +63,8 @@ public class ConversationService {
     }
 
     /**
-     * TDD 4.3.3 — 保存 assistant 消息及其动态提示词
-     * 在 AI 流式回复结束后，将完整回复内容和动态 suggestions 持久化
-     *
-     * @param conversationId 所属会话 ID
-     * @param content        AI 回复的完整文本
-     * @param suggestions    由 SuggestFollowupsTool 捕获的跟进提示词列表
-     * @return 保存后的 Message 实体
+     * TDD 4.3.3 — Persist the assistant message and its dynamic suggestions
+     * after the AI streaming reply finishes.
      */
     @Transactional
     public Message saveAssistantMessage(Long conversationId, String content, List<String> suggestions) {
@@ -93,7 +77,7 @@ public class ConversationService {
             .build();
         Message savedMessage = messageRepository.save(message);
 
-        // 保存动态提示词
+        // Save dynamic suggestions
         if (suggestions != null && !suggestions.isEmpty()) {
             for (int i = 0; i < suggestions.size(); i++) {
                 DynamicSuggestion ds = DynamicSuggestion.builder()
@@ -111,18 +95,14 @@ public class ConversationService {
     }
 
     /**
-     * TDD 4.3.3 — 加载会话历史消息
-     * 查询最近 limit 条消息，按时间正序返回（适合作为 AI 上下文）
-     *
-     * @param conversationId 会话 ID
-     * @param limit          最大返回条数
-     * @return 按时间正序排列的 MessageResponse 列表
+     * TDD 4.3.3 — Load conversation history.
+     * Fetches the most recent {@code limit} messages in ascending chronological order (suitable as AI context).
      */
     @Transactional(readOnly = true)
     public List<MessageResponse> loadHistory(Long conversationId, int limit) {
         List<Message> messages = messageRepository.findRecentByConversationId(
             conversationId, PageRequest.of(0, limit));
-        // findRecentByConversationId 返回倒序，需要翻转为正序
+        // findRecentByConversationId returns descending order; reverse to ascending
         Collections.reverse(messages);
         return messages.stream()
             .map(this::mapToMessageResponse)
@@ -130,11 +110,8 @@ public class ConversationService {
     }
 
     /**
-     * TDD 6.5.1 — 获取完整会话详情
-     * 包含所有消息历史和最新一条 assistant 消息的 suggestions
-     *
-     * @param conversationId 会话 ID
-     * @return ConversationResponse 包含完整上下文
+     * TDD 6.5.1 — Get full conversation details including all messages
+     * and the suggestions of the latest assistant message.
      */
     @Transactional(readOnly = true)
     public ConversationResponse getConversation(Long conversationId) {
@@ -145,7 +122,7 @@ public class ConversationService {
             .map(this::mapToMessageResponse)
             .toList();
 
-        // 获取最后一条 assistant 消息的 suggestions
+        // Get suggestions of the last assistant message
         List<String> lastSuggestions = messageRepository
             .findLastAssistantMessage(conversationId, PageRequest.of(0, 1))
             .stream()
@@ -167,17 +144,13 @@ public class ConversationService {
             .build();
     }
 
-    /**
-     * 内部方法：根据 ID 加载会话实体，不存在则抛出异常
-     */
+    /** Internal: load a conversation entity by ID, throwing if not found. */
     private Conversation getConversationEntity(Long conversationId) {
         return conversationRepository.findById(conversationId)
             .orElseThrow(() -> new ResourceNotFoundException("Conversation", conversationId));
     }
 
-    /**
-     * 将 Message 实体映射为 MessageResponse DTO
-     */
+    /** Map a Message entity to a MessageResponse DTO. */
     private MessageResponse mapToMessageResponse(Message message) {
         List<String> suggestions = dynamicSuggestionRepository
             .findByMessageIdOrderBySortOrderAsc(message.getId())

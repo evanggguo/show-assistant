@@ -1,6 +1,6 @@
 /**
- * 根布局
- * 使用系统字体（避免 Google Fonts 网络请求），配置全局元数据
+ * Root layout
+ * Uses system fonts (avoids Google Fonts network requests) and configures global metadata
  */
 
 import type { Metadata, Viewport } from 'next'

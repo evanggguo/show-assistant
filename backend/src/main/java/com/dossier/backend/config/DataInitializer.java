@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * 启动时检查 owners 表，为没有登录凭证的 owner 设置默认账号
- * 默认用户名：owner_{id}，默认密码：888888
+ * On startup, checks the owners table and assigns default credentials to any owner without them.
+ * Default username: owner_{id}, default password: 888888.
  */
 @Slf4j
 @Component
@@ -33,7 +33,7 @@ public class DataInitializer implements ApplicationRunner {
         for (Owner owner : owners) {
             if (owner.getUsername() == null) {
                 String username = "owner" + owner.getId();
-                // 避免与已有用户名冲突
+                // Avoid collisions with existing usernames
                 if (ownerRepository.existsByUsername(username)) {
                     username = "owner" + owner.getId() + "_" + System.currentTimeMillis();
                 }

@@ -9,8 +9,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * CORS 跨域配置
- * 提供 CorsConfigurationSource Bean，供 Spring Security 统一处理跨域。
+ * CORS configuration — provides a CorsConfigurationSource Bean consumed by Spring Security.
  */
 @Configuration
 public class CorsConfig {

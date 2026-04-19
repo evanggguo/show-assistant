@@ -47,7 +47,7 @@ export default function KnowledgeTable({ entries, onRefresh }: Props) {
     if (!confirm('Delete this knowledge entry?')) return
     try {
       await deleteKnowledge(id)
-      // 若当前页删完则回到上一页
+      // If the current page is now empty, go back one page
       if (pageEntries.length === 1 && page > 1) setPage(page - 1)
       onRefresh()
     } catch (e) {
@@ -57,7 +57,7 @@ export default function KnowledgeTable({ entries, onRefresh }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* 添加知识条目（置于列表上方） */}
+      {/* Add knowledge entry (placed above the list) */}
       {showForm ? (
         <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
           <div className="flex gap-3">
@@ -115,7 +115,7 @@ export default function KnowledgeTable({ entries, onRefresh }: Props) {
         </button>
       )}
 
-      {/* 知识条目列表 */}
+      {/* Knowledge entry list */}
       {entries.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-8">No knowledge entries yet</p>
       ) : (
@@ -158,7 +158,7 @@ export default function KnowledgeTable({ entries, onRefresh }: Props) {
             </div>
           ))}
 
-          {/* 分页控件 */}
+          {/* Pagination controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-gray-400">

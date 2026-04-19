@@ -16,8 +16,8 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * 向量嵌入服务实现
- * 优先使用 Spring AI EmbeddingModel（如已配置），否则直接调用 Google text-embedding-004 REST API。
+ * Vector embedding service implementation.
+ * Prefers Spring AI EmbeddingModel if configured; otherwise falls back to the Google text-embedding REST API directly.
  */
 @Slf4j
 @Service
