@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * 知识库管理服务
- * 负责知识条目的 CRUD，Phase 3 集成向量嵌入生成
+ * Knowledge base management service.
+ * Handles knowledge entry CRUD; Phase 3 integrates vector embedding generation.
  */
 @Slf4j
 @Service
@@ -62,7 +62,7 @@ public class KnowledgeService {
         if (title != null) entry.setTitle(title);
         if (content != null && !content.equals(entry.getContent())) {
             entry.setContent(content);
-            // 内容变更时重新生成 embedding
+            // Re-generate embedding when content changes
             float[] embedding = embeddingService.embed(content);
             entry.setEmbedding(embedding.length > 0 ? embedding : null);
         }

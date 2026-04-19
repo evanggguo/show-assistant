@@ -14,9 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 管理端 Owner 信息服务 — 基于当前登录 owner 操作
- */
+/** Admin owner profile service — operates on the currently authenticated owner. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,7 +55,7 @@ public class AdminOwnerService {
         if (newUsername.equals(owner.getUsername())) return;
 
         if (ownerRepository.existsByUsername(newUsername)) {
-            throw new BusinessException("USERNAME_TAKEN", "用户名已被占用");
+            throw new BusinessException("USERNAME_TAKEN", "Username is already taken");
         }
 
         owner.setUsername(newUsername);
@@ -71,7 +69,7 @@ public class AdminOwnerService {
 
         if (owner.getPasswordHash() == null ||
             !passwordEncoder.matches(request.getOldPassword(), owner.getPasswordHash())) {
-            throw new BusinessException("WRONG_PASSWORD", "原密码错误");
+            throw new BusinessException("WRONG_PASSWORD", "Current password is incorrect");
         }
 
         owner.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));

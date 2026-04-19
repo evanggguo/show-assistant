@@ -12,11 +12,11 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 /**
- * TDD 4.5.3 — Ollama 本地模型提供商（真实实现）
- * 通过 Spring AI OllamaChatModel 调用本地 Ollama 服务进行流式对话。
+ * TDD 4.5.3 — Ollama local model provider (real implementation).
+ * Calls the local Ollama service via Spring AI OllamaChatModel for streaming chat.
  *
- * 通过 application.yml 中 ai.provider=ollama（默认）激活，ai.mock 对本地模型无效。
- * Ollama 服务地址由 spring.ai.ollama.base-url 配置（默认 http://localhost:11434）。
+ * Activated via ai.provider=ollama (default) in application.yml; ai.mock has no effect on the local model.
+ * The Ollama service URL is configured via spring.ai.ollama.base-url (default http://localhost:11434).
  */
 @Slf4j
 public class OllamaChatProvider implements AiChatProvider {
@@ -24,9 +24,9 @@ public class OllamaChatProvider implements AiChatProvider {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String SUGGESTION_PROMPT_TEMPLATE =
-        "请根据以下助手回答，生成 2-3 个访客可能感兴趣的跟进问题。\n\n" +
-        "助手的回答：\n%s\n\n" +
-        "要求：只输出 JSON 数组，不含任何其他文字，格式：[\"问题1\", \"问题2\"]，每条不超过 20 字。";
+        "Based on the following assistant response, generate 2-3 follow-up questions a visitor might find interesting.\n\n" +
+        "Assistant response:\n%s\n\n" +
+        "Requirement: output a JSON array only, no other text. Format: [\"question 1\", \"question 2\"]. Keep each question under 20 words.";
 
     private final ChatClient chatClient;
 

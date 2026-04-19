@@ -16,11 +16,11 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * OwnerController 单元测试
- * 验证控制器对 Owner 简介和初始 suggestions 的处理
+ * Unit tests for OwnerController.
+ * Verifies controller handling of owner profile and initial suggestions.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("OwnerController 单元测试")
+@DisplayName("OwnerController Unit Tests")
 class OwnerControllerTest {
 
     @Mock
@@ -30,13 +30,13 @@ class OwnerControllerTest {
     private OwnerController ownerController;
 
     @Test
-    @DisplayName("GET /api/owner/profile：正常返回 OwnerProfileResponse")
+    @DisplayName("GET /api/owner/profile: returns OwnerProfileResponse correctly")
     void should_return_owner_profile() {
         // given
         OwnerProfileResponse profile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("测试主人")
-            .tagline("全栈开发者")
+            .name("Test Owner")
+            .tagline("Full-stack Developer")
             .avatarUrl("https://example.com/avatar.jpg")
             .build();
         when(ownerService.getOwnerProfile()).thenReturn(profile);
@@ -46,15 +46,15 @@ class OwnerControllerTest {
 
         // then
         assertThat(result.isSuccess()).isTrue();
-        assertThat(result.getData().getName()).isEqualTo("测试主人");
-        assertThat(result.getData().getTagline()).isEqualTo("全栈开发者");
+        assertThat(result.getData().getName()).isEqualTo("Test Owner");
+        assertThat(result.getData().getTagline()).isEqualTo("Full-stack Developer");
     }
 
     @Test
-    @DisplayName("GET /api/suggestions/initial：返回初始提示词列表")
+    @DisplayName("GET /api/suggestions/initial: returns the initial suggestions list")
     void should_return_initial_suggestions() {
         // given
-        List<String> suggestions = List.of("介绍一下你自己", "你最近做了什么项目");
+        List<String> suggestions = List.of("Tell me about yourself", "What projects have you worked on recently?");
         when(ownerService.getInitialSuggestions()).thenReturn(suggestions);
 
         // when
@@ -62,11 +62,11 @@ class OwnerControllerTest {
 
         // then
         assertThat(result.isSuccess()).isTrue();
-        assertThat(result.getData()).containsExactly("介绍一下你自己", "你最近做了什么项目");
+        assertThat(result.getData()).containsExactly("Tell me about yourself", "What projects have you worked on recently?");
     }
 
     @Test
-    @DisplayName("GET /api/suggestions/initial：无可用 suggestions 时返回空列表")
+    @DisplayName("GET /api/suggestions/initial: returns empty list when no suggestions are available")
     void should_return_empty_list_when_no_suggestions() {
         // given
         when(ownerService.getInitialSuggestions()).thenReturn(Collections.emptyList());

@@ -11,9 +11,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 
-/**
- * JWT 工具类 — 生成、解析、校验 JSON Web Token
- */
+/** JWT utility — generate, parse, and validate JSON Web Tokens. */
 @Slf4j
 @Component
 public class JwtConfig {

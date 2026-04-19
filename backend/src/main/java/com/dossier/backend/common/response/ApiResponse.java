@@ -6,8 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * TDD 6.1 — 统一 API 响应包装
- * 所有非 SSE 接口的统一返回格式
+ * TDD 6.1 — Unified API response wrapper for all non-SSE endpoints.
  */
 @Data
 @Builder
@@ -20,9 +19,7 @@ public class ApiResponse<T> {
     private String message;
     private String code;
 
-    /**
-     * TDD 6.1.1 — 成功响应工厂方法
-     */
+    /** TDD 6.1.1 — Success response factory. */
     public static <T> ApiResponse<T> ok(T data) {
         return ApiResponse.<T>builder()
             .success(true)
@@ -30,9 +27,7 @@ public class ApiResponse<T> {
             .build();
     }
 
-    /**
-     * TDD 6.1.2 — 错误响应工厂方法
-     */
+    /** TDD 6.1.2 — Error response factory. */
     public static <T> ApiResponse<T> error(String code, String message) {
         return ApiResponse.<T>builder()
             .success(false)

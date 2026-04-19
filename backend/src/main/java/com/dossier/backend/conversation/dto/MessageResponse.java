@@ -7,8 +7,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * TDD 6.5.1 — 消息响应 DTO
- * 对外暴露的消息信息
+ * TDD 6.5.1 — Message response DTO
+ * Message information exposed to clients
  */
 @Data
 @Builder

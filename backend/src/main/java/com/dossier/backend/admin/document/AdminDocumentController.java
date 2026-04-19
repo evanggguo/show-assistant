@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * 管理端文档上传、查询、解析接口
+ * Admin endpoints for document upload, retrieval, and processing
  */
 @RestController
 @RequestMapping("/api/admin/documents")

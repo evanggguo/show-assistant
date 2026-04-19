@@ -1,10 +1,10 @@
 -- V1__init_schema.sql
--- TDD 5.1 — 数据库初始化脚本
+-- TDD 5.1 — Database initialization script
 
--- 启用 pgvector 扩展
+-- Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- owners 表：展示者/产品拥有者
+-- owners table: portfolio owner
 CREATE TABLE IF NOT EXISTS owners (
     id         BIGSERIAL PRIMARY KEY,
     name       VARCHAR(100) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS owners (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- client_users 表：来访用户（通过 SSO 登录）
+-- client_users table: visiting users (login via SSO)
 CREATE TABLE IF NOT EXISTS client_users (
     id           BIGSERIAL PRIMARY KEY,
     sso_provider VARCHAR(50)  NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS client_users (
     UNIQUE (sso_provider, sso_id)
 );
 
--- conversations 表：对话会话
+-- conversations table: chat sessions
 CREATE TABLE IF NOT EXISTS conversations (
     id         BIGSERIAL PRIMARY KEY,
     owner_id   BIGINT       NOT NULL REFERENCES owners (id),
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- messages 表：对话消息
+-- messages table: chat messages
 CREATE TABLE IF NOT EXISTS messages (
     id              BIGSERIAL PRIMARY KEY,
     conversation_id BIGINT      NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- dynamic_suggestions 表：动态跟进提示词（每条 assistant 消息末尾生成）
+-- dynamic_suggestions table: AI-generated follow-up suggestions (appended at the end of each assistant message)
 CREATE TABLE IF NOT EXISTS dynamic_suggestions (
     id         BIGSERIAL PRIMARY KEY,
     message_id BIGINT       NOT NULL REFERENCES messages (id) ON DELETE CASCADE,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS dynamic_suggestions (
     sort_order INT          NOT NULL DEFAULT 0
 );
 
--- prompt_suggestions 表：Owner 预设的初始提示词
+-- prompt_suggestions table: owner-preset initial prompt suggestions
 CREATE TABLE IF NOT EXISTS prompt_suggestions (
     id         BIGSERIAL PRIMARY KEY,
     owner_id   BIGINT       NOT NULL REFERENCES owners (id),
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS prompt_suggestions (
     enabled    BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
--- knowledge_entries 表：知识库条目（支持向量检索）
+-- knowledge_entries table: knowledge base entries (supports vector retrieval)
 CREATE TABLE IF NOT EXISTS knowledge_entries (
     id         BIGSERIAL PRIMARY KEY,
     owner_id   BIGINT       NOT NULL REFERENCES owners (id),
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS knowledge_entries (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- documents 表：上传的源文档
+-- documents table: uploaded source documents
 CREATE TABLE IF NOT EXISTS documents (
     id         BIGSERIAL PRIMARY KEY,
     owner_id   BIGINT       NOT NULL REFERENCES owners (id),
@@ -86,12 +86,12 @@ CREATE TABLE IF NOT EXISTS documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- HNSW 向量索引（TDD 5.2 — 向量索引配置）
+-- HNSW vector index (TDD 5.2 — vector index configuration)
 CREATE INDEX IF NOT EXISTS idx_knowledge_entries_embedding
     ON knowledge_entries USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
 
--- 普通索引优化查询
+-- Regular indexes for query optimization
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages (conversation_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_knowledge_entries_owner_id ON knowledge_entries (owner_id);
 CREATE INDEX IF NOT EXISTS idx_prompt_suggestions_owner_id ON prompt_suggestions (owner_id, sort_order);

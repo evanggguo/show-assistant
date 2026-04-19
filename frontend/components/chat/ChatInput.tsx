@@ -1,15 +1,15 @@
 'use client'
 
 /**
- * ChatInput — 底部固定输入框
- * 对应 TDD 1.4 输入区域设计
+ * ChatInput — Fixed bottom input bar.
+ * Corresponds to TDD 1.4 input area design.
  *
- * 特性：
- * - textarea 支持多行输入
- * - Enter 发送，Shift+Enter 换行
- * - 流式输出时禁用，发送按钮显示 loading 状态
- * - focus 时输入框边框高亮
- * - 移动端友好（底部固定，不遮挡消息）
+ * Features:
+ * - Textarea supports multi-line input
+ * - Enter to send, Shift+Enter for new line
+ * - Disabled during streaming; send button shows loading state
+ * - Input border highlights on focus
+ * - Mobile-friendly (sticky bottom, does not overlap messages)
  */
 
 import React, { useState, useRef, useCallback, KeyboardEvent } from 'react'
@@ -33,22 +33,18 @@ export default function ChatInput({
 
   const canSend = value.trim().length > 0 && !disabled && !isLoading
 
-  /**
-   * 发送消息并清空输入框
-   */
+  /** Send the message and clear the input */
   const handleSend = useCallback(() => {
     if (!canSend) return
     onSend(value.trim())
     setValue('')
-    // 重置 textarea 高度
+    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
   }, [canSend, onSend, value])
 
-  /**
-   * Enter 发送，Shift+Enter 换行
-   */
+  /** Enter to send, Shift+Enter for new line */
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -59,14 +55,12 @@ export default function ChatInput({
     [handleSend]
   )
 
-  /**
-   * 自动调整 textarea 高度（最多 6 行）
-   */
+  /** Auto-resize textarea height (max 6 lines) */
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value)
     const el = e.target
     el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 144) + 'px' // 6行 ≈ 144px
+    el.style.height = Math.min(el.scrollHeight, 144) + 'px' // 6 lines ≈ 144px
   }, [])
 
   return (
@@ -100,7 +94,7 @@ export default function ChatInput({
             style={{ scrollbarWidth: 'thin' }}
           />
 
-          {/* 发送按钮 */}
+          {/* Send button */}
           <button
             onClick={handleSend}
             disabled={!canSend}
@@ -121,7 +115,7 @@ export default function ChatInput({
           </button>
         </div>
 
-        {/* 操作提示 */}
+        {/* Keyboard hint */}
         <p className="text-xs text-gray-400 mt-1.5 text-center select-none">
           Enter to send &nbsp;·&nbsp; Shift+Enter for new line
         </p>

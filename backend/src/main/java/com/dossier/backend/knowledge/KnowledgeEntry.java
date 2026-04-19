@@ -12,8 +12,8 @@ import org.hibernate.annotations.Type;
 import java.time.OffsetDateTime;
 
 /**
- * TDD 5.1 — KnowledgeEntry 实体
- * 知识库中的单条知识条目，支持向量嵌入以实现语义检索（Phase 3）
+ * TDD 5.1 — KnowledgeEntry entity
+ * A single knowledge entry in the knowledge base; supports vector embeddings for semantic retrieval (Phase 3)
  */
 @Data
 @Builder
@@ -42,8 +42,8 @@ public class KnowledgeEntry {
     private String content;
 
     /**
-     * 向量嵌入，用于语义检索（768 维，gemini-embedding-001）。
-     * 使用自定义 VectorType 通过 PGvector 写入 PostgreSQL vector 列。
+     * Vector embedding for semantic retrieval (768 dimensions, gemini-embedding-001).
+     * Written to the PostgreSQL vector column via PGvector using a custom VectorType.
      */
     @Type(VectorType.class)
     @Column(name = "embedding", columnDefinition = "vector(768)")

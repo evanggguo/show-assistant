@@ -8,35 +8,35 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 /**
- * TDD 4.5.3 — Mock AI 提供商
- * 返回固定的模拟 token 流，不调用任何真实 AI API。
- * 仅在云端提供商（如 Claude）且 ai.mock=true 时激活，本地 Ollama 不受此影响。
+ * TDD 4.5.3 — Mock AI provider
+ * Returns a fixed simulated token stream without calling any real AI API.
+ * Only activated for cloud providers (e.g. Claude) when ai.mock=true; Ollama is unaffected.
  *
- * 模拟 Tool Use 行为：在返回 token 流之前，
- * 直接调用 SuggestFollowupsTool.suggestFollowups() 以触发 suggestions 捕获，
- * 使 ChatService 的后续逻辑（保存 suggestions、推送 done 事件）能正常运行。
+ * Simulates Tool Use: before returning the token stream, it directly calls
+ * SuggestFollowupsTool.suggestFollowups() to trigger suggestions capture,
+ * allowing ChatService's downstream logic (save suggestions, push done event) to work normally.
  */
 @Slf4j
 public class MockChatProvider implements AiChatProvider {
 
     private static final List<String> MOCK_TOKENS = List.of(
-        "您好！", "我是展示助理，", "当前运行在 **Mock 模式**。\n\n",
-        "如需接入真实模型，请在配置中设置：\n",
-        "- 本地模型（推荐）：`AI_PROVIDER=ollama`（无需其他配置，mock 开关对本地模型无效）\n",
-        "- Claude：`AI_PROVIDER=claude`，`AI_MOCK=false`，`ANTHROPIC_API_KEY=<key>`"
+        "Hello! ", "I'm the Dossier AI assistant, ", "currently running in **Mock mode**.\n\n",
+        "To connect a real model, set the following in your configuration:\n",
+        "- Local model (recommended): `AI_PROVIDER=ollama` (no other config needed; mock flag is ignored for local models)\n",
+        "- Claude: `AI_PROVIDER=claude`, `AI_MOCK=false`, `ANTHROPIC_API_KEY=<key>`"
     );
 
     private static final List<String> MOCK_SUGGESTIONS = List.of(
-        "如何切换到真实模型？",
-        "系统支持哪些 AI 提供商？",
-        "如何配置 Ollama 本地模型？"
+        "How do I switch to a real model?",
+        "Which AI providers are supported?",
+        "How do I configure the Ollama local model?"
     );
 
     @Override
     public Flux<String> streamChat(List<Message> messages, Object... tools) {
         log.debug("[MockChatProvider] streamChat called, simulating {} tokens", MOCK_TOKENS.size());
 
-        // 模拟 Tool Use：找到 SuggestFollowupsTool 并直接调用，触发 suggestions 捕获
+        // Simulate Tool Use: find SuggestFollowupsTool and invoke it directly to trigger suggestions capture
         for (Object tool : tools) {
             if (tool instanceof SuggestFollowupsTool suggestTool) {
                 suggestTool.suggestFollowups(MOCK_SUGGESTIONS);

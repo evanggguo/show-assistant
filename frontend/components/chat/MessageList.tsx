@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * MessageList — 消息列表滚动区域
- * 对应 TDD 4.3 消息展示
+ * MessageList — Scrollable message list area.
+ * Corresponds to TDD 4.3 message display.
  *
- * 特性：
- * - 新消息后自动滚动到底部
- * - 流式输出中展示 StreamingBubble
+ * Features:
+ * - Auto-scrolls to the bottom after new messages
+ * - Shows StreamingBubble during streaming output
  */
 
 import React, { useEffect, useRef } from 'react'
@@ -16,10 +16,10 @@ import StreamingBubble from './StreamingBubble'
 
 interface MessageListProps {
   messages: Message[]
-  /** 当前流式输出文本（空字符串表示未在流式中） */
+  /** Currently streaming text (empty string means not streaming) */
   streamingText: string
   isStreaming: boolean
-  /** 点击提示词卡片的回调 */
+  /** Callback when a suggestion card is clicked */
   onSuggestionSelect: (text: string) => void
 }
 
@@ -31,7 +31,7 @@ export default function MessageList({
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // 新消息或流式文本变化时自动滚动到底部
+  // Auto-scroll to bottom when messages or streaming text changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingText])
@@ -48,12 +48,12 @@ export default function MessageList({
           />
         ))}
 
-        {/* 流式气泡：正在输出时展示 */}
+        {/* Streaming bubble: shown while output is in progress */}
         {isStreaming && streamingText && (
           <StreamingBubble text={streamingText} />
         )}
 
-        {/* 滚动锚点 */}
+        {/* Scroll anchor */}
         <div ref={bottomRef} />
       </div>
     </div>

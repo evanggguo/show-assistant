@@ -7,10 +7,10 @@ import lombok.Data;
 @Data
 public class CreateSuggestionRequest {
 
-    @NotBlank(message = "提示词内容不能为空")
+    @NotBlank(message = "Suggestion text must not be blank")
     private String text;
 
-    @NotNull(message = "排序值不能为空")
+    @NotNull(message = "Sort order must not be null")
     private Integer sortOrder;
 
     private Boolean enabled = true;

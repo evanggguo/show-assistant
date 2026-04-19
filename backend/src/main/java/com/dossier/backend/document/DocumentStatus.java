@@ -1,16 +1,16 @@
 package com.dossier.backend.document;
 
 /**
- * TDD 5.1 — 文档处理状态枚举
- * 跟踪上传文档的处理进度
+ * TDD 5.1 — Document processing status enum
+ * Tracks the processing progress of uploaded documents
  */
 public enum DocumentStatus {
-    /** 上传完成，待处理 */
+    /** Upload complete, awaiting processing */
     PENDING,
-    /** 正在解析和分块 */
+    /** Parsing and chunking in progress */
     PROCESSING,
-    /** 处理完成，已生成知识条目 */
+    /** Processing complete; knowledge entries generated */
     COMPLETED,
-    /** 处理失败 */
+    /** Processing failed */
     FAILED
 }

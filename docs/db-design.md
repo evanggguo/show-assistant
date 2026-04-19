@@ -1,4 +1,4 @@
-# Dossier - 数据库表设计 UML
+# Dossier - Database Schema UML
 
 ```mermaid
 erDiagram
@@ -8,8 +8,8 @@ erDiagram
         varchar(100) name "NOT NULL"
         varchar(255) tagline
         varchar(500) avatar_url
-        jsonb contact "默认 {}"
-        jsonb config "默认 {}"
+        jsonb contact "default {}"
+        jsonb config "default {}"
         timestamptz created_at
     }
 
@@ -25,8 +25,8 @@ erDiagram
     conversations {
         bigserial id PK
         bigint owner_id FK "NOT NULL"
-        bigint user_id FK "NULL = 游客"
-        varchar(50) source "默认 web"
+        bigint user_id FK "NULL = guest"
+        varchar(50) source "default web"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -43,15 +43,15 @@ erDiagram
         bigserial id PK
         bigint message_id FK "NOT NULL"
         varchar(500) text "NOT NULL"
-        int sort_order "默认 0"
+        int sort_order "default 0"
     }
 
     prompt_suggestions {
         bigserial id PK
         bigint owner_id FK "NOT NULL"
         varchar(500) text "NOT NULL"
-        int sort_order "默认 0"
-        boolean enabled "默认 true"
+        int sort_order "default 0"
+        boolean enabled "default true"
     }
 
     knowledge_entries {
@@ -60,8 +60,8 @@ erDiagram
         varchar(50) type "skill/experience/project/education/service/other"
         varchar(255) title
         text content "NOT NULL"
-        vector_1536 embedding "Phase 3 向量检索"
-        bigint source_doc FK "可为 NULL"
+        vector_1536 embedding "Phase 3 vector retrieval"
+        bigint source_doc FK "nullable"
         timestamptz created_at
     }
 
@@ -76,44 +76,44 @@ erDiagram
         timestamptz created_at
     }
 
-    owners ||--o{ conversations : "拥有"
-    owners ||--o{ prompt_suggestions : "配置"
-    owners ||--o{ knowledge_entries : "维护"
-    owners ||--o{ documents : "上传"
+    owners ||--o{ conversations : "has"
+    owners ||--o{ prompt_suggestions : "configures"
+    owners ||--o{ knowledge_entries : "maintains"
+    owners ||--o{ documents : "uploads"
 
-    client_users ||--o{ conversations : "发起"
+    client_users ||--o{ conversations : "initiates"
 
-    conversations ||--o{ messages : "包含"
+    conversations ||--o{ messages : "contains"
 
-    messages ||--o{ dynamic_suggestions : "生成"
+    messages ||--o{ dynamic_suggestions : "generates"
 
-    documents ||--o{ knowledge_entries : "提取自"
+    documents ||--o{ knowledge_entries : "extracted from"
 ```
 
 ---
 
-## 表关系说明
+## Table Relationships
 
-| 关系 | 类型 | 说明 |
-|------|------|------|
-| owners → conversations | 1 : N | 一个 Owner 下有多个对话会话 |
-| owners → prompt_suggestions | 1 : N | Owner 在管理端配置首屏初始提示词 |
-| owners → knowledge_entries | 1 : N | Owner 维护的知识库条目 |
-| owners → documents | 1 : N | Owner 上传的原始文件 |
-| client_users → conversations | 1 : N | 已登录用户发起的对话（游客时 user_id = NULL）|
-| conversations → messages | 1 : N | 一个会话包含多条消息 |
-| messages → dynamic_suggestions | 1 : N | 每条 assistant 消息生成 2~4 条动态提示词 |
-| documents → knowledge_entries | 1 : N | 一个文件可提取多条知识条目（source_doc 可为 NULL，表示手动录入） |
+| Relationship | Type | Description |
+|--------------|------|-------------|
+| owners → conversations | 1 : N | One owner has multiple conversation sessions |
+| owners → prompt_suggestions | 1 : N | Owner configures initial home-screen suggestions in the admin console |
+| owners → knowledge_entries | 1 : N | Knowledge base entries maintained by the owner |
+| owners → documents | 1 : N | Files uploaded by the owner |
+| client_users → conversations | 1 : N | Conversations initiated by logged-in users (guest: user_id = NULL) |
+| conversations → messages | 1 : N | A conversation contains multiple messages |
+| messages → dynamic_suggestions | 1 : N | Each assistant message generates 2–4 dynamic follow-up suggestions |
+| documents → knowledge_entries | 1 : N | One file can yield multiple knowledge entries (source_doc nullable = manually entered) |
 
 ---
 
-## 关键索引
+## Key Indexes
 
-| 索引名 | 表 | 列 | 类型 | 用途 |
-|--------|----|----|------|------|
-| `idx_knowledge_entries_embedding` | knowledge_entries | embedding | HNSW (cosine) | Phase 3 向量相似度检索 |
-| `idx_messages_conversation_id` | messages | conversation_id, created_at | B-tree | 按会话加载历史消息 |
-| `idx_knowledge_entries_owner_id` | knowledge_entries | owner_id | B-tree | 按 Owner 筛选知识条目 |
-| `idx_prompt_suggestions_owner_id` | prompt_suggestions | owner_id, sort_order | B-tree | 首屏提示词排序查询 |
-| `idx_conversations_owner_id` | conversations | owner_id | B-tree | 管理端查看会话列表 |
-| UNIQUE (sso_provider, sso_id) | client_users | — | Unique | 防止 SSO 用户重复注册 |
+| Index Name | Table | Column(s) | Type | Purpose |
+|------------|-------|-----------|------|---------|
+| `idx_knowledge_entries_embedding` | knowledge_entries | embedding | HNSW (cosine) | Phase 3 vector similarity search |
+| `idx_messages_conversation_id` | messages | conversation_id, created_at | B-tree | Load message history by conversation |
+| `idx_knowledge_entries_owner_id` | knowledge_entries | owner_id | B-tree | Filter knowledge entries by owner |
+| `idx_prompt_suggestions_owner_id` | prompt_suggestions | owner_id, sort_order | B-tree | Sorted query for home-screen suggestions |
+| `idx_conversations_owner_id` | conversations | owner_id | B-tree | Admin console conversation list |
+| UNIQUE (sso_provider, sso_id) | client_users | — | Unique | Prevent duplicate SSO user registration |

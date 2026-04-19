@@ -7,8 +7,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * TDD 6.5.1 — 会话详情响应 DTO
- * 包含会话基本信息、完整消息历史和最新动态提示词
+ * TDD 6.5.1 — Conversation detail response DTO
+ * Contains basic conversation info, full message history, and the latest dynamic suggestions
  */
 @Data
 @Builder

@@ -1,73 +1,73 @@
-# Dossier — 部署指南
+# Dossier — Deployment Guide
 
-## 目录
+## Table of Contents
 
-1. [环境要求](#1-环境要求)
-2. [快速部署（Docker Compose）](#2-快速部署docker-compose)
-3. [本地开发启动](#3-本地开发启动)
-4. [环境变量说明](#4-环境变量说明)
-5. [服务健康检查](#5-服务健康检查)
-6. [常见问题](#6-常见问题)
-
----
-
-## 1. 环境要求
-
-| 工具 | 最低版本 | 说明 |
-|------|----------|------|
-| Docker | 24.0+ | 容器运行时 |
-| Docker Compose | 2.20+ | 已内置于 Docker Desktop |
-| Git | 任意 | 拉取代码 |
-
-> 本地开发模式还需要：JDK 21、Maven 3.9+、Node.js 20+
+1. [Prerequisites](#1-prerequisites)
+2. [Quick Deployment (Docker Compose)](#2-quick-deployment-docker-compose)
+3. [Local Development Setup](#3-local-development-setup)
+4. [Environment Variables](#4-environment-variables)
+5. [Health Checks](#5-health-checks)
+6. [Troubleshooting](#6-troubleshooting)
 
 ---
 
-## 2. 快速部署（Docker Compose）
+## 1. Prerequisites
 
-### 2.1 克隆代码
+| Tool | Minimum Version | Notes |
+|------|-----------------|-------|
+| Docker | 24.0+ | Container runtime |
+| Docker Compose | 2.20+ | Bundled with Docker Desktop |
+| Git | Any | For cloning the repository |
+
+> Local development also requires: JDK 21, Maven 3.9+, Node.js 20+
+
+---
+
+## 2. Quick Deployment (Docker Compose)
+
+### 2.1 Clone the Repository
 
 ```bash
 git clone https://github.com/evanggguo/dossier.git
 cd dossier
 ```
 
-### 2.2 创建环境变量文件
+### 2.2 Create the Environment File
 
 ```bash
 cp .env.example .env
-# 编辑 .env，填入真实值
+# Edit .env and fill in real values
 ```
 
-`.env` 文件内容示例见[第 4 节](#4-环境变量说明)。
+See [Section 4](#4-environment-variables) for the `.env` file reference.
 
-### 2.3 一键启动
+### 2.3 Start All Services
 
 ```bash
 docker compose up -d
 ```
 
-首次启动会自动构建镜像，约需 3～5 分钟（取决于网速）。
+The first run will build all images automatically — expect 3–5 minutes depending on network speed.
 
-### 2.4 验证启动
+### 2.4 Verify Startup
 
 ```bash
 docker compose ps
 ```
 
-三个服务均显示 `healthy` 或 `running` 后，访问：
+Once all three services show `healthy` or `running`, open:
 
-- 前端：<http://localhost:3000/chat>
-- 后端健康端点：<http://localhost:8080/actuator/health>
+- Frontend: <http://localhost:3000/chat>
+- Backend health endpoint: <http://localhost:8080/actuator/health>
 
-### 2.5 停止服务
+### 2.5 Stop Services
 
 ```bash
-docker compose down          # 保留数据卷
-docker compose down -v       # 同时删除数据卷（清空数据库）
+docker compose down          # Keep data volumes
+docker compose down -v       # Also delete volumes (wipes the database)
 ```
 
-### 2.6 更新部署
+### 2.6 Update Deployment
 
 ```bash
 git pull
@@ -76,11 +76,11 @@ docker compose up -d --build
 
 ---
 
-## 3. 本地开发启动
+## 3. Local Development Setup
 
-本地开发不需要 Docker，各服务独立启动，修改后热重载。
+For local development, each service can be started independently with hot-reload.
 
-### 3.1 启动 PostgreSQL
+### 3.1 Start PostgreSQL
 
 ```bash
 docker run -d --name dossier-pg \
@@ -91,7 +91,7 @@ docker run -d --name dossier-pg \
   pgvector/pgvector:pg16
 ```
 
-### 3.2 启动后端
+### 3.2 Start the Backend
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxxx
@@ -99,22 +99,9 @@ cd backend
 mvn spring-boot:run
 ```
 
-后端默认监听 `http://localhost:8080`。
+The backend listens on `http://localhost:8080` by default.
 
-> **Maven 镜像加速**（国内网络）：在 `~/.m2/settings.xml` 中配置阿里云镜像：
-> ```xml
-> <settings>
->   <mirrors>
->     <mirror>
->       <id>aliyun-central</id>
->       <mirrorOf>central</mirrorOf>
->       <url>https://maven.aliyun.com/repository/public</url>
->     </mirror>
->   </mirrors>
-> </settings>
-> ```
-
-### 3.3 启动前端
+### 3.3 Start the Frontend
 
 ```bash
 cd frontend
@@ -122,45 +109,43 @@ npm install
 npm run dev
 ```
 
-前端默认监听 `http://localhost:3000`。
+The frontend listens on `http://localhost:3000` by default.
 
 ---
 
-## 4. 本地模型（Ollama）
+## 4. Local Model (Ollama)
 
-Dossier 默认使用本地 Ollama 模型，无需 API Key，数据不出境。
-
-### 4.1 安装 Ollama
+### 4.1 Install Ollama
 
 ```bash
 # macOS / Linux
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Windows：下载安装包 https://ollama.com/download
+# Windows: download the installer from https://ollama.com/download
 ```
 
-### 4.2 拉取推荐模型
+### 4.2 Pull a Recommended Model
 
 ```bash
-# 中英双语，7B 参数，16GB 内存可流畅运行
+# Bilingual (Chinese + English), 7B parameters, runs on 16 GB RAM
 ollama pull qwen2.5:7b
 
-# 低内存环境（8GB），仅英文
+# Low-memory environment (8 GB), English only
 ollama pull llama3.2:3b
 ```
 
-### 4.3 验证 Ollama 运行
+### 4.3 Verify Ollama is Running
 
 ```bash
 curl http://localhost:11434/api/tags
-# 返回已安装模型列表即正常
+# Returns a list of installed models when healthy
 ```
 
-Ollama 默认监听 `http://localhost:11434`，Docker Compose 部署时后端通过 `http://host.docker.internal:11434`（Mac/Windows）或宿主机 IP 访问。
+Ollama listens on `http://localhost:11434` by default. When deploying with Docker Compose, the backend reaches it via `http://host.docker.internal:11434` (Mac/Windows) or the host IP (Linux).
 
-### 4.4 切换为云端模型
+### 4.4 Switch to a Cloud Provider
 
-如需使用 Claude，修改 `.env` 中的 `AI_PROVIDER` 并提供 API Key，同时关闭 mock 开关：
+To use Claude, update `.env` with the provider and API key, and disable mock mode:
 
 ```dotenv
 AI_PROVIDER=claude
@@ -168,115 +153,114 @@ AI_MOCK=false
 ANTHROPIC_API_KEY=sk-ant-xxxx
 ```
 
-> **注意**：`AI_MOCK` 仅对云端提供商（Claude）生效。使用本地 Ollama 时无需关心此配置，始终真实调用。
+> **Note**: `AI_MOCK` only affects cloud providers (Claude). When using local Ollama, this setting is ignored — requests are always real.
 
 ---
 
-## 5. 环境变量说明
+## 5. Environment Variables
 
-在项目根目录创建 `.env` 文件（`.env` 已加入 `.gitignore`，不会提交到 Git）：
+Create a `.env` file in the project root (`.env` is git-ignored):
 
 ```dotenv
-# ── AI 提供商────────────────────────────────────────────────────────────
-# AI_PROVIDER: 可选 ollama（默认，本地模型）| claude
+# ── AI Provider ──────────────────────────────────────────────────────────────
+# AI_PROVIDER: ollama (default, local model) | google | claude
 AI_PROVIDER=ollama
 
-# Ollama 服务地址（AI_PROVIDER=ollama 时配置；本地模型始终真实调用，AI_MOCK 对其无效）
-# Docker Compose 内访问宿主机 Ollama：
+# Ollama service URL (used when AI_PROVIDER=ollama; always makes real calls, AI_MOCK has no effect)
+# Accessing host Ollama from inside Docker Compose:
 #   Mac/Windows: http://host.docker.internal:11434
-#   Linux:       http://172.17.0.1:11434（或宿主机实际 IP）
+#   Linux:       http://172.17.0.1:11434  (or actual host IP)
 AI_OLLAMA_BASE_URL=http://host.docker.internal:11434
 AI_OLLAMA_MODEL=qwen2.5:7b
 
-# Claude 配置（AI_PROVIDER=claude 时填写）
-# AI_MOCK=true（默认）：不调用 Claude API，返回模拟数据
-# AI_MOCK=false：真实调用，需提供 ANTHROPIC_API_KEY
+# Claude configuration (fill in when AI_PROVIDER=claude)
+# AI_MOCK=true (default): skips the Claude API and returns mock data
+# AI_MOCK=false: makes real API calls; requires ANTHROPIC_API_KEY
 AI_MOCK=true
 ANTHROPIC_API_KEY=
 
-# ── 数据库（可选，有默认值）────────────────────────────────────────────
+# ── Database (optional, has defaults) ────────────────────────────────────────
 DB_PASSWORD=postgres
 
-# ── 前端（可选，有默认值）─────────────────────────────────────────────
-# 前端访问后端的地址
-# - 本地 Docker Compose：默认 http://localhost:8080
-# - 生产服务器：填写服务器公网 IP 或域名，如 https://api.example.com
+# ── Frontend (optional, has defaults) ────────────────────────────────────────
+# URL the frontend uses to reach the backend
+# - Local Docker Compose: defaults to http://localhost:8080
+# - Production server: set to the public IP or domain, e.g. https://api.example.com
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
-> **注意**：`NEXT_PUBLIC_API_URL` 在 Next.js 构建时会被内联到前端代码中，修改后需要重新构建前端镜像（`docker compose up -d --build frontend`）。
+> **Note**: `NEXT_PUBLIC_API_URL` is inlined into the frontend bundle at build time. After changing it, rebuild the frontend image: `docker compose up -d --build frontend`.
 
 ---
 
-## 6. 服务健康检查
+## 6. Health Checks
 
-| 服务 | 检查地址 | 预期响应 |
-|------|----------|----------|
+| Service | Check | Expected Response |
+|---------|-------|-------------------|
 | PostgreSQL | `pg_isready -U postgres -d dossier` | `accepting connections` |
-| 后端 | `http://localhost:8080/actuator/health` | `{"status":"UP"}` |
-| 前端 | `http://localhost:3000/chat` | HTTP 200 |
+| Backend | `http://localhost:8080/actuator/health` | `{"status":"UP"}` |
+| Frontend | `http://localhost:3000/chat` | HTTP 200 |
 
-**验证核心 SSE 接口：**
+**Verify the core SSE endpoint:**
 
 ```bash
 curl -N -X POST http://localhost:8080/api/chat/stream \
   -H "Content-Type: application/json" \
-  -d '{"message": "你好，介绍一下你自己"}' \
+  -d '{"message": "Hello, tell me about yourself"}' \
   --no-buffer
 ```
 
-预期输出：
+Expected output:
 
 ```
 event: token
-data: {"text":"你"}
+data: {"text":"Hello"}
 
 event: token
-data: {"text":"好"}
+data: {"text":"!"}
 
 ...
 
 event: done
-data: {"messageId":1,"suggestions":["他擅长哪些技术？","有哪些项目案例？","如何联系他？"]}
+data: {"messageId":1,"suggestions":["What technologies does he specialize in?","Any notable projects?","How can I get in touch?"]}
 ```
 
 ---
 
-## 7. 常见问题
+## 7. Troubleshooting
 
-### Q: 前端页面空白或 API 请求失败
+### Q: Blank frontend page or API requests failing
 
-检查 `NEXT_PUBLIC_API_URL` 是否正确。如果前端和后端部署在不同机器，需要填写后端的实际可访问地址，并确保 CORS 配置允许前端域名。
+Check that `NEXT_PUBLIC_API_URL` is correct. If the frontend and backend are on different machines, set it to the backend's actual accessible address and make sure CORS is configured to allow the frontend origin.
 
-### Q: 后端启动报 `FlywayException: Validate failed`
+### Q: Backend fails to start with `FlywayException: Validate failed`
 
-数据库 schema 与 Flyway 迁移脚本不一致。常见原因是手动修改了数据库表结构。解决方法：
+The database schema is out of sync with Flyway migration scripts — typically caused by manually altering the schema. Fix by wiping and rebuilding:
 
 ```bash
-# 清空数据库并重建（会丢失数据）
+# Drops the database and recreates it (data will be lost)
 docker compose down -v
 docker compose up -d
 ```
 
-### Q: `docker compose up` 卡在后端构建阶段（Maven 下载依赖超时）
+### Q: `docker compose up` hangs at the backend build stage (Maven dependency timeout)
 
-国内网络访问 Maven Central 可能超时。在 `backend/Dockerfile` 的构建阶段中，Maven 会使用容器内的默认镜像源。可临时在 `backend/Dockerfile` 中挂载本地 `.m2` 缓存：
+Maven dependency downloads may time out on slow networks. You can mount your local `.m2` cache at build time:
 
 ```bash
-# 确保本地已有 ~/.m2 缓存，然后构建时挂载
 docker build --build-arg MAVEN_OPTS="-Dmaven.repo.remote=https://maven.aliyun.com/repository/public" ./backend
 ```
 
-或者先在本地运行 `mvn dependency:go-offline` 缓存依赖，再构建 Docker 镜像。
+Or run `mvn dependency:go-offline` locally first to pre-populate the cache, then build the Docker image.
 
-### Q: 前端镜像构建失败（Next.js standalone 模式）
+### Q: Frontend image build fails (Next.js standalone mode)
 
-确认 `frontend/next.config.ts` 中包含 `output: 'standalone'` 配置。否则构建产物中不会生成 `.next/standalone` 目录，导致 `COPY --from=builder /app/.next/standalone ./` 失败。
+Ensure `frontend/next.config.ts` contains `output: 'standalone'`. Without it, the `.next/standalone` directory is not generated, causing `COPY --from=builder /app/.next/standalone ./` to fail.
 
-### Q: 修改后端代码后如何重新部署
+### Q: How to redeploy after changing backend code
 
 ```bash
 docker compose up -d --build backend
 ```
 
-只重新构建并重启后端服务，不影响数据库和前端。
+This rebuilds and restarts only the backend service without affecting the database or frontend.

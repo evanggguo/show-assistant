@@ -17,10 +17,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * RagService 单元测试
+ * Unit tests for RagService.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("RagService 单元测试")
+@DisplayName("RagService Unit Tests")
 class RagServiceTest {
 
     @Mock
@@ -37,39 +37,39 @@ class RagServiceTest {
     }
 
     @Test
-    @DisplayName("embedding 不可用时返回空列表")
+    @DisplayName("Returns empty list when embedding is unavailable")
     void should_return_empty_list_when_embedding_unavailable() {
         when(embeddingService.embed(anyString())).thenReturn(new float[0]);
 
-        List<KnowledgeEntryDto> result = ragService.retrieve(1L, "关于项目的问题");
+        List<KnowledgeEntryDto> result = ragService.retrieve(1L, "question about the project");
 
         assertThat(result).isEmpty();
         verify(knowledgeRepository, never()).findSimilarByOwner(any(), any(), anyInt());
     }
 
     @Test
-    @DisplayName("embedding 可用时调用向量检索")
+    @DisplayName("Calls vector retrieval when embedding is available")
     void should_call_repository_when_embedding_available() {
         float[] mockEmbedding = new float[768];
         when(embeddingService.embed(anyString())).thenReturn(mockEmbedding);
         when(knowledgeRepository.findSimilarByOwner(any(), any(), anyInt()))
             .thenReturn(Collections.emptyList());
 
-        List<KnowledgeEntryDto> result = ragService.retrieve(1L, "关于项目的问题", 5);
+        List<KnowledgeEntryDto> result = ragService.retrieve(1L, "question about the project", 5);
 
         assertThat(result).isEmpty();
         verify(knowledgeRepository).findSimilarByOwner(eq(1L), any(), eq(5));
     }
 
     @Test
-    @DisplayName("retrieve 便捷重载默认 topK=5")
+    @DisplayName("Convenience overload uses default topK=5")
     void should_use_default_topK_5() {
         float[] mockEmbedding = new float[768];
         when(embeddingService.embed(anyString())).thenReturn(mockEmbedding);
         when(knowledgeRepository.findSimilarByOwner(any(), any(), anyInt()))
             .thenReturn(Collections.emptyList());
 
-        ragService.retrieve(1L, "查询");
+        ragService.retrieve(1L, "query");
 
         verify(knowledgeRepository).findSimilarByOwner(eq(1L), any(), eq(5));
     }

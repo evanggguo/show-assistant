@@ -12,14 +12,14 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 /**
- * Google AI Studio（Gemini）云端模型提供商
- * 通过 Spring AI GoogleGenAiChatModel 调用 Google AI Studio API 进行流式对话。
+ * Google AI Studio (Gemini) cloud model provider.
+ * Calls the Google AI Studio API via Spring AI's GoogleGenAiChatModel for streaming chat.
  *
- * 通过 application.yml 中 ai.provider=google, ai.mock=false 激活。
- * 需要在环境变量中设置 GOOGLE_AI_API_KEY（Google AI Studio 的 API Key）。
+ * Activated when ai.provider=google and ai.mock=false in application.yml.
+ * Requires GOOGLE_AI_API_KEY in the environment.
  *
- * 注意：不向 Gemini 传递工具（避免 function calling 后续流解析异常），
- * 改用 generateSuggestions() fallback 生成建议问题。
+ * Note: tools are not passed to Gemini to avoid stream parsing errors with function calling.
+ * generateSuggestions() fallback is used instead.
  */
 @Slf4j
 public class GoogleChatProvider implements AiChatProvider {
@@ -41,8 +41,8 @@ public class GoogleChatProvider implements AiChatProvider {
     @Override
     public Flux<String> streamChat(List<Message> messages, Object... tools) {
         log.debug("[GoogleChatProvider] streamChat called with {} messages", messages.size());
-        // 不传递 tools：Gemini function calling 后续流存在解析异常，
-        // 改由 generateSuggestions() fallback 生成建议。
+        // Tools are not passed: Gemini function calling causes stream parsing errors;
+        // suggestions are generated via generateSuggestions() fallback instead.
         return chatClient.prompt()
             .messages(messages)
             .stream()

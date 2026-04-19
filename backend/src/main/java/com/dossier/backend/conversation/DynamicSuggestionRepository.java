@@ -6,13 +6,13 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * TDD 5.1 — DynamicSuggestion 数据访问层
+ * TDD 5.1 — DynamicSuggestion data access layer
  */
 @Repository
 public interface DynamicSuggestionRepository extends JpaRepository<DynamicSuggestion, Long> {
 
     /**
-     * TDD 4.4 — 查询指定消息的动态提示词，按 sort_order 升序
+     * TDD 4.4 — Query dynamic suggestions for the specified message, sorted by sort_order ascending
      */
     List<DynamicSuggestion> findByMessageIdOrderBySortOrderAsc(Long messageId);
 

@@ -6,8 +6,8 @@ import lombok.Data;
 import java.util.Map;
 
 /**
- * TDD 6.4.1 — Owner 简介响应 DTO
- * 对外暴露的 Owner 信息，不含敏感配置数据
+ * TDD 6.4.1 — Owner profile response DTO
+ * Owner information exposed to clients; does not include sensitive configuration data
  */
 @Data
 @Builder

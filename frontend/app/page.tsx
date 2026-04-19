@@ -1,6 +1,6 @@
 /**
- * 根路由 — 展示说明页面
- * 访问 /{ownerUsername}/chat 进入指定 owner 的对话页面
+ * Root route — displays an informational landing page
+ * Visit /{ownerUsername}/chat to open the chat page for a specific owner
  */
 
 export default function RootPage() {

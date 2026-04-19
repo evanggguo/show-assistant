@@ -35,8 +35,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 文档解析和向量化处理服务
- * 支持 PDF / TXT / DOCX / PPTX，将内容分块后生成向量存入 knowledge_entries
+ * Document parsing and vectorization service.
+ * Supports PDF / TXT / DOCX / PPTX; splits content into chunks and stores vectors in knowledge_entries
  */
 @Slf4j
 @Service
@@ -123,7 +123,7 @@ public class DocumentProcessingService {
             case "docx" -> extractDocx(path);
             case "ppt", "pptx" -> extractPptx(path);
             default -> throw new BusinessException("UNSUPPORTED_TYPE",
-                "不支持的文件类型: " + doc.getFileType());
+                "Unsupported file type: " + doc.getFileType());
         };
     }
 

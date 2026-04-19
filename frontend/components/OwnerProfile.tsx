@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * OwnerProfile — Owner 简介组件
- * 对应 TDD 1.4 首屏 Owner 信息展示
+ * OwnerProfile — Owner profile display component.
+ * Corresponds to TDD 1.4 home-screen owner info.
  *
  * variant:
- * - "hero"    首屏大尺寸（居中，头像 80px，名字大字体）
- * - "compact" 对话中顶部小尺寸（头像 32px，行内展示）
+ * - "hero"    Large size on home screen (centered, 80px avatar, large name)
+ * - "compact" Small size at top during conversation (32px avatar, inline)
  */
 
 import React from 'react'
@@ -26,7 +26,7 @@ export default function OwnerProfile({
     return (
       <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-white">
         <div className="max-w-[800px] mx-auto flex items-center gap-2 w-full">
-          {/* 头像（compact：32px） */}
+          {/* Avatar (compact: 32px) */}
           <Avatar name={profile.name} avatarUrl={profile.avatarUrl} size={32} />
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-semibold text-gray-800">{profile.name}</span>
@@ -37,10 +37,10 @@ export default function OwnerProfile({
     )
   }
 
-  // hero 模式
+  // Hero mode
   return (
     <div className="flex flex-col items-center gap-3 py-6">
-      {/* 头像（hero：80px） */}
+      {/* Avatar (hero: 80px) */}
       <Avatar name={profile.name} avatarUrl={profile.avatarUrl} size={80} />
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
@@ -50,7 +50,7 @@ export default function OwnerProfile({
   )
 }
 
-// ─── 内部子组件 ────────────────────────────────────────────────
+// ─── Internal sub-components ──────────────────────────────────
 
 interface AvatarProps {
   name: string
@@ -59,8 +59,8 @@ interface AvatarProps {
 }
 
 /**
- * Avatar — 头像组件
- * 有 avatarUrl 时展示图片，否则展示首字母占位符
+ * Avatar — Avatar component.
+ * Shows an image when avatarUrl is set; otherwise shows an initial-letter placeholder.
  */
 function Avatar({ name, avatarUrl, size }: AvatarProps) {
   const initial = name ? name.charAt(0).toUpperCase() : '?'
@@ -78,7 +78,7 @@ function Avatar({ name, avatarUrl, size }: AvatarProps) {
     )
   }
 
-  // 无图片时：渐变背景 + 首字母
+  // No image: gradient background with initial letter
   const fontSize = size >= 60 ? 'text-2xl' : 'text-sm'
   return (
     <div

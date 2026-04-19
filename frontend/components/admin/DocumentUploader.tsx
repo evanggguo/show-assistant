@@ -64,7 +64,7 @@ export default function DocumentUploader({ documents, onRefresh }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* 拖拽上传区域 */}
+      {/* Drag-and-drop upload area */}
       <div
         onClick={() => fileInputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -100,7 +100,7 @@ export default function DocumentUploader({ documents, onRefresh }: Props) {
         )}
       </div>
 
-      {/* 文档列表 */}
+      {/* Document list */}
       {documents.length === 0 ? (
         <p className="text-sm text-gray-400 text-center py-4">No documents yet</p>
       ) : (

@@ -1,68 +1,68 @@
-# Dossier — 技术设计文档（TDD）
+# Dossier — Technical Design Document (TDD)
 
 ---
 
-## 1. 文档说明
+## 1. Document Overview
 
-本文档基于 PRD，细化系统的技术实现方案。**重点**在第 4 节——动态提示词与流式对话，这是产品最核心、最复杂的部分，也是 MVP 阶段优先跑通的目标。
-
----
-
-## 2. 技术选型确认
-
-| 层次 | 选型 | 说明 |
-|------|------|------|
-| 前端 | Next.js 15 (App Router, TypeScript) | SSR + 客户端组件混用，天然支持 SSE |
-| 后端 | Java 21 + Spring Boot 3 | 熟悉栈；Spring AI 原生支持 Claude 流式 + Tool Use |
-| AI 接入 | Spring AI + 多提供商抽象 | 默认本地 Ollama；可配置切换 Claude / OpenAI |
-| 向量存储 | PostgreSQL + pgvector | 减少组件数，MVP 阶段足够；pgvector 支持 HNSW 索引 |
-| 关系存储 | PostgreSQL（同库） | 对话记录、用户、知识条目共用一个 PG 实例 |
-| 文件存储 | 本地挂载（MinIO 预留接口） | Docker Volume 挂载，接口层抽象便于后续迁移 |
-| 部署 | Docker Compose | 一键启动：next、spring-boot、postgres |
+This document elaborates on the technical implementation plan based on the PRD. The focus is **Section 4 — Dynamic Suggestions and Streaming Chat**, which is the most core and complex part of the product and the primary milestone for the MVP phase.
 
 ---
 
-## 3. 系统架构
+## 2. Technology Choices
 
-### 3.1 模块划分
+| Layer | Choice | Notes |
+|-------|--------|-------|
+| Frontend | Next.js 15 (App Router, TypeScript) | SSR + client component mix; native SSE support |
+| Backend | Java 21 + Spring Boot 3 | Familiar stack; Spring AI natively supports Claude streaming + Tool Use |
+| AI integration | Spring AI + multi-provider abstraction | Default: local Ollama; configurable to Claude / OpenAI |
+| Vector storage | PostgreSQL + pgvector | Fewer components; sufficient for MVP; pgvector supports HNSW indexing |
+| Relational storage | PostgreSQL (same database) | Conversations, users, and knowledge entries share one PG instance |
+| File storage | Local mount (MinIO interface reserved) | Docker Volume mount; abstracted interface for future migration |
+| Deployment | Docker Compose | One-command startup: next, spring-boot, postgres |
+
+---
+
+## 3. System Architecture
+
+### 3.1 Module Breakdown
 
 ```
 dossier/
-├── frontend/          # Next.js，三端页面
+├── frontend/          # Next.js, three sub-systems
 │   ├── app/
-│   │   ├── [ownerUsername]/chat/  # 客户端（动态路由，多 Owner）
-│   │   ├── admin/                 # Owner 管理端（login/profile/knowledge/documents）
-│   │   └── admin-panel/           # 超级管理面板（Owner 账号增删）
+│   │   ├── [ownerUsername]/chat/  # Client portal (dynamic route, multi-owner)
+│   │   ├── admin/                 # Owner admin console (login/profile/knowledge/documents)
+│   │   └── admin-panel/           # Super admin panel (owner account management)
 │   ├── components/
-│   │   ├── admin/     # 管理端组件（SuggestionManager、KnowledgeTable、DocumentUploader 等）
-│   │   └── ...        # 公共组件（OwnerProfile、ErrorAlert 等）
+│   │   ├── admin/     # Admin console components (SuggestionManager, KnowledgeTable, DocumentUploader, etc.)
+│   │   └── ...        # Shared components (OwnerProfile, ErrorAlert, etc.)
 │   ├── hooks/
-│   │   ├── useChatStream.ts   # SSE 流式对话
-│   │   └── useAdminAuth.ts    # 管理端 JWT 认证状态
+│   │   ├── useChatStream.ts   # SSE streaming chat
+│   │   └── useAdminAuth.ts    # Admin console JWT auth state
 │   └── lib/
-│       ├── api.ts             # 客户端公开接口
-│       └── admin-api.ts       # 管理端接口（JWT 自动注入）
+│       ├── api.ts             # Client public API
+│       └── admin-api.ts       # Admin console API (auto JWT injection)
 │
 └── backend/           # Spring Boot
-    ├── chat/          # 对话模块（流式 + RAG + 动态提示词）
-    ├── client/        # 客户端公开接口（/api/owners/{username}/...）
-    ├── knowledge/     # 知识库模块（录入、检索）
-    ├── conversation/  # 会话持久化模块
-    ├── owner/         # Owner 信息模块（含 OwnerContextHolder）
-    ├── document/      # 文档上传与处理模块
-    ├── admin/         # Owner 管理端接口（auth/owner/knowledge/document/suggestion）
-    ├── superadmin/    # 超级管理模块（Owner 账号 CRUD，固定 Token 鉴权）
-    └── ai/            # AI 服务抽象层
-        ├── provider/  # 多模型提供商实现
-        │   ├── AiChatProvider        # 接口（流式对话抽象）
-        │   ├── GoogleChatProvider    # Google Gemini（默认，真实实现）
-        │   ├── ClaudeChatProvider    # Anthropic Claude（真实实现）
-        │   ├── OllamaChatProvider    # 本地 Ollama（可选，真实实现）
-        │   └── MockChatProvider      # Mock fallback（开发/测试用）
+    ├── chat/          # Chat module (streaming + RAG + dynamic suggestions)
+    ├── client/        # Client public endpoints (/api/owners/{username}/...)
+    ├── knowledge/     # Knowledge base module (entry, retrieval)
+    ├── conversation/  # Conversation persistence module
+    ├── owner/         # Owner info module (includes OwnerContextHolder)
+    ├── document/      # Document upload and processing module
+    ├── admin/         # Owner admin endpoints (auth/owner/knowledge/document/suggestion)
+    ├── superadmin/    # Super admin module (owner account CRUD, fixed token auth)
+    └── ai/            # AI service abstraction layer
+        ├── provider/  # Multi-model provider implementations
+        │   ├── AiChatProvider        # Interface (streaming chat abstraction)
+        │   ├── GoogleChatProvider    # Google Gemini (default, real implementation)
+        │   ├── ClaudeChatProvider    # Anthropic Claude (real implementation)
+        │   ├── OllamaChatProvider    # Local Ollama (optional, real implementation)
+        │   └── MockChatProvider      # Mock fallback (dev/testing)
         └── EmbeddingService
 ```
 
-### 3.2 部署结构
+### 3.2 Deployment Architecture
 
 ```
                               Browser
@@ -75,7 +75,7 @@ dossier/
           │                      │                      │
           └──────────────────────┼──────────────────────┘
                                  ▼
-                       Nginx (反向代理, :80)
+                       Nginx (reverse proxy, :80)
                        ├── /api/* → Spring Boot
                        └── /*    → Next.js
                                  ▼
@@ -85,68 +85,68 @@ dossier/
                        └────────┬────────┘
                                 ▼
                        PostgreSQL (5432)
-                       ├── 关系表（owners, conversations, messages, …）
-                       └── pgvector 扩展（knowledge_entries.embedding）
+                       ├── Relational tables (owners, conversations, messages, …)
+                       └── pgvector extension (knowledge_entries.embedding)
 ```
 
 ---
 
-## 4. 核心功能详细设计：动态提示词与流式对话
+## 4. Core Feature Design: Dynamic Suggestions and Streaming Chat
 
-> 这是系统最核心的部分。本节从整体数据流开始，逐层拆解每个子问题的设计决策。
+> This is the most critical part of the system. This section starts from the overall data flow and breaks down each sub-problem and design decision.
 
-### 4.1 整体数据流
+### 4.1 Overall Data Flow
 
 ```
-用户发送消息
+User sends a message
      │
      ▼
 [Frontend] POST /api/owners/{username}/chat/stream
-  携带：{ conversationId?, message, history[] }
+  Payload: { conversationId?, message, history[] }
      │
      ▼
 [Backend: ChatController]
-  1. 加载/创建会话
-  2. 保存 user message 到数据库
-  3. 触发 RAG 检索
-  4. 组装 Prompt（系统提示 + 检索上下文 + 对话历史）
-  5. 调用 Claude API（流式 + Tool Use）
-  6. 以 SSE 向前端推送 token
-  7. 流结束时，捕获 Tool Use 结果（动态提示词）
-  8. 保存 assistant message + 动态提示词到数据库
-  9. 推送 SSE done 事件（含提示词）
+  1. Load or create a conversation
+  2. Save user message to the database
+  3. Trigger RAG retrieval
+  4. Assemble prompt (system prompt + retrieved context + conversation history)
+  5. Call AI API (streaming + Tool Use)
+  6. Push tokens to frontend via SSE
+  7. After stream ends, capture Tool Use result (dynamic suggestions)
+  8. Save assistant message + dynamic suggestions to the database
+  9. Push SSE done event (with suggestions)
      │
      ▼
 [Frontend: useChatStream hook]
-  - 实时渲染 token 到全宽 AI 回答区域
-  - 接收 done 事件，展示动态提示词卡片
+  - Render tokens in real time to the full-width AI reply area
+  - Receive done event and display dynamic suggestion cards
 ```
 
-### 4.2 RAG 检索管道
+### 4.2 RAG Retrieval Pipeline
 
-#### 4.2.1 知识嵌入（写入时）
+#### 4.2.1 Knowledge Embedding (on write)
 
 ```
-拥有者录入内容（文字 / 文件）
+Owner enters content (text / file)
      │
      ▼
-AI 提取结构化知识条目（ExtractionService）
-每条 KnowledgeEntry：{ type, title, content }
+AI extracts structured knowledge entries (ExtractionService)
+Each KnowledgeEntry: { type, title, content }
      │
      ▼
 EmbeddingService.embed(content)
-  → 调用 Claude / OpenAI Embedding API
-  → 返回 float[] 向量（1536 维 或 1024 维）
+  → Calls Claude / OpenAI Embedding API
+  → Returns float[] vector (1536 or 1024 dimensions)
      │
      ▼
 INSERT INTO knowledge_entries (content, embedding, type, …)
-  使用 pgvector 存储向量列
+  Uses pgvector to store the vector column
 ```
 
-#### 4.2.2 语义检索（对话时）
+#### 4.2.2 Semantic Retrieval (during chat)
 
 ```
-用户问题 q
+User question q
      │
      ▼
 EmbeddingService.embed(q) → queryVector
@@ -154,75 +154,75 @@ EmbeddingService.embed(q) → queryVector
      ▼
 SELECT content, type, title
   FROM knowledge_entries
-  ORDER BY embedding <=> queryVector   -- pgvector 余弦距离
+  ORDER BY embedding <=> queryVector   -- pgvector cosine distance
   LIMIT 8
      │
      ▼
-返回 top-K 相关知识片段，注入 Prompt
+Return top-K relevant knowledge snippets, inject into prompt
 ```
 
-**检索增强策略**（MVP 后可迭代）：
-- MVP：纯向量相似度检索，`<=>` 余弦距离
-- 迭代 1：混合检索，加入 PostgreSQL 全文搜索（`tsvector`），结果 RRF 融合
-- 迭代 2：按 `type` 加权，提问技能类问题时技能条目权重更高
+**Retrieval enhancement strategy** (iterable after MVP):
+- MVP: pure vector similarity retrieval, `<=>` cosine distance
+- Iteration 1: hybrid retrieval with PostgreSQL full-text search (`tsvector`); results fused with RRF
+- Iteration 2: type-weighted scoring — skill entries rank higher for skill-related questions
 
-### 4.3 流式对话协议（SSE）
+### 4.3 Streaming Chat Protocol (SSE)
 
-SSE（Server-Sent Events）是本系统前后端实时通信的唯一协议。选择 SSE 而非 WebSocket 的原因：对话是单向推送（服务端→客户端），SSE 实现更简单，且 Spring Boot / Next.js 均原生支持。
+SSE (Server-Sent Events) is the sole real-time communication protocol between frontend and backend. SSE is chosen over WebSocket because the conversation is unidirectional push (server → client), and SSE is simpler to implement with native support in both Spring Boot and Next.js.
 
-#### 4.3.1 SSE 事件类型定义
+#### 4.3.1 SSE Event Type Definitions
 
-服务端向客户端推送以下三种事件，均为 `text/event-stream` 格式：
+The server pushes three event types to the client, all in `text/event-stream` format:
 
 ```
-# 1. 文本 token（流式逐字输出）
+# 1. Text token (streaming character-by-character output)
 event: token
-data: {"text": "你好"}
+data: {"text": "Hello"}
 
 event: token
-data: {"text": "，我"}
+data: {"text": ", I"}
 
 event: token
-data: {"text": "可以帮你..."}
+data: {"text": " can help you..."}
 
-# 2. 流结束（携带动态提示词 + 消息 ID）
+# 2. Stream end (with dynamic suggestions + message ID)
 event: done
 data: {
   "messageId": "msg_abc123",
   "suggestions": [
-    "他擅长哪些技术栈？",
-    "有没有相关的项目案例？",
-    "如何联系他？"
+    "What tech stack does he specialize in?",
+    "Are there any related project examples?",
+    "How can I contact him?"
   ]
 }
 
-# 3. 错误
+# 3. Error
 event: error
-data: {"code": "RATE_LIMITED", "message": "请稍后再试"}
+data: {"code": "RATE_LIMITED", "message": "Please try again later"}
 ```
 
-**设计要点**：
-- `token` 事件高频（每个词片段一条），`data` 只含增量文本，不含历史
-- `done` 事件在 Claude 流完全结束后发送一次，携带完整的结构化提示词
-- 前端收到 `done` 后关闭 EventSource 连接，展示提示词卡片
-- `messageId` 由后端生成并返回，前端用于后续操作（如点击提示词时关联上下文）
+**Design notes**:
+- `token` events are high-frequency (one per text fragment); `data` contains only incremental text, not history
+- `done` is sent once after the full stream ends, carrying the complete structured suggestions
+- After receiving `done`, the frontend closes the EventSource connection and displays suggestion cards
+- `messageId` is generated by the backend; the frontend uses it for subsequent operations (e.g., linking context when a suggestion is clicked)
 
-#### 4.3.2 服务端处理流程（Spring Boot）
+#### 4.3.2 Server-Side Processing (Spring Boot)
 
 ```java
-// ChatController.java（伪代码）
+// ChatController.java (pseudo-code)
 @GetMapping(value = "/api/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 public SseEmitter streamChat(@RequestBody ChatRequest req) {
-    SseEmitter emitter = new SseEmitter(180_000L); // 3 分钟超时
+    SseEmitter emitter = new SseEmitter(180_000L); // 3-minute timeout
 
     executor.submit(() -> {
-        // 1. RAG 检索
+        // 1. RAG retrieval
         List<String> context = ragService.retrieve(req.getMessage());
 
-        // 2. 组装 Prompt
+        // 2. Assemble prompt
         Prompt prompt = promptBuilder.build(req, context);
 
-        // 3. 调用 Claude 流式 API（含 Tool Use）
+        // 3. Call AI streaming API (with Tool Use)
         claudeClient.streamWithTools(prompt, new StreamHandler() {
             @Override
             public void onToken(String token) {
@@ -234,18 +234,18 @@ public SseEmitter streamChat(@RequestBody ChatRequest req) {
             @Override
             public void onToolUse(String toolName, JsonNode input) {
                 if ("suggest_followups".equals(toolName)) {
-                    // 捕获动态提示词，暂存
+                    // Capture dynamic suggestions, hold temporarily
                     suggestions = input.get("suggestions");
                 }
             }
 
             @Override
             public void onComplete(String fullText) {
-                // 4. 持久化
+                // 4. Persist
                 Message msg = conversationService.saveAssistantMessage(
                     req.getConversationId(), fullText, suggestions);
 
-                // 5. 发送 done 事件
+                // 5. Send done event
                 emitter.send(SseEmitter.event()
                     .name("done")
                     .data(buildDonePayload(msg.getId(), suggestions)));
@@ -259,10 +259,10 @@ public SseEmitter streamChat(@RequestBody ChatRequest req) {
 }
 ```
 
-#### 4.3.3 客户端处理逻辑（Next.js）
+#### 4.3.3 Client-Side Processing (Next.js)
 
 ```typescript
-// hooks/useChatStream.ts（伪代码）
+// hooks/useChatStream.ts (pseudo-code)
 export function useChatStream() {
   const [streamingText, setStreamingText] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -281,7 +281,7 @@ export function useChatStream() {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
 
-    // 手动解析 SSE 流（fetch + ReadableStream，兼容性优于 EventSource）
+    // Manually parse the SSE stream (fetch + ReadableStream; better compatibility than EventSource)
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -293,7 +293,7 @@ export function useChatStream() {
         } else if (line.event === 'done') {
           setSuggestions(line.data.suggestions);
           setIsStreaming(false);
-          // 通知父组件将 streamingText 转为正式消息
+          // Notify parent to convert streamingText into a final message
           onStreamComplete?.(line.data.messageId);
         } else if (line.event === 'error') {
           handleError(line.data);
@@ -307,32 +307,32 @@ export function useChatStream() {
 }
 ```
 
-**为什么用 `fetch + ReadableStream` 而非 `EventSource`**：
-- `EventSource` 只支持 GET 请求，无法携带 JSON Body（会话信息、消息内容）
-- `fetch` 方案完全控制请求格式，同时可读取 SSE 事件流
+**Why `fetch + ReadableStream` instead of `EventSource`**:
+- `EventSource` only supports GET requests and cannot carry a JSON body (conversation state, message content)
+- The `fetch` approach gives full control over the request format while still reading the SSE event stream
 
-### 4.4 动态提示词生成策略
+### 4.4 Dynamic Suggestion Generation Strategy
 
-#### 4.4.1 方案选型对比
+#### 4.4.1 Approach Comparison
 
-生成动态提示词（每轮 2~4 条追问建议）有以下几种实现方式：
+There are several ways to generate dynamic suggestions (2–4 follow-up recommendations per turn):
 
-| 方案 | 原理 | 优点 | 缺点 |
-|------|------|------|------|
-| **A. 流后独立请求** | 主流结束后，单独发一条 AI 请求生成建议 | 实现简单 | 额外延迟 ~1s；两次调用 |
-| **B. 流内分隔符** | 要求模型在回复末尾追加 `---SUGGESTIONS---\n[...]` | 单次调用 | 模型输出不稳定，解析脆弱 |
-| **C. Tool Use（推荐）** | 定义 `suggest_followups` 工具，模型在回复末尾强制调用 | 结构化可靠；单次调用；延迟低 | 需理解 Claude Tool Use API |
+| Approach | Mechanism | Pros | Cons |
+|----------|-----------|------|------|
+| **A. Separate request after stream** | Send a dedicated AI request after the main stream ends | Simple to implement | Extra ~1s latency; two API calls |
+| **B. In-stream delimiter** | Ask the model to append `---SUGGESTIONS---\n[...]` at the end of its reply | Single call | Model output is inconsistent; fragile parsing |
+| **C. Tool Use (recommended)** | Define a `suggest_followups` tool; model is required to call it at the end of each reply | Structured and reliable; single call; low latency | Requires understanding the Claude Tool Use API |
 
-**选择方案 C（Tool Use）**，原因：Claude 的 Tool Use 在流式模式下完全支持，且 tool call 的结构化输出比自由文本解析可靠得多。
+**Choosing Approach C (Tool Use)**: Claude's Tool Use is fully supported in streaming mode, and the structured output from a tool call is far more reliable than parsing free-form text.
 
-#### 4.4.2 Tool Use 方案详细设计
+#### 4.4.2 Tool Use Detailed Design
 
-**工具定义**（发送给 Claude 的 tools 参数）：
+**Tool definition** (sent to the AI as the `tools` parameter):
 
 ```json
 {
   "name": "suggest_followups",
-  "description": "在每次回答结束后，生成 2~4 条用户可能感兴趣的追问建议。建议应基于本轮对话内容，自然引导用户深入了解。",
+  "description": "After completing each response, generate 2–4 follow-up questions the user might find interesting. Suggestions should be based on the current conversation and naturally guide the user to learn more.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -341,7 +341,7 @@ export function useChatStream() {
         "items": { "type": "string" },
         "minItems": 2,
         "maxItems": 4,
-        "description": "追问建议列表，每条不超过 20 字"
+        "description": "List of follow-up suggestions, each under 20 words"
       }
     },
     "required": ["suggestions"]
@@ -349,65 +349,65 @@ export function useChatStream() {
 }
 ```
 
-**Tool Use 在流式响应中的位置**：
+**Position of Tool Use in the streaming response**:
 
-Claude 流式 API 的事件序列如下：
+The Claude streaming API event sequence is as follows:
 
 ```
-# 1. 正常文本 token（主回答）
+# 1. Normal text tokens (main reply)
 {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "..."}}
 
-# 2. 文本结束，开始 tool call block
+# 2. Text block ends; tool call block begins
 {"type": "content_block_stop"}
 {"type": "content_block_start", "content_block": {"type": "tool_use", "name": "suggest_followups"}}
 
-# 3. Tool call 参数（JSON 增量，需累积拼接）
+# 3. Tool call parameters (incremental JSON; must be accumulated and joined)
 {"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": "{\"suggestions\":"}}
-{"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": "[\"他的主要技术栈？\","}}
+{"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": "[\"What is his main tech stack?\","}}
 ...
 
-# 4. Tool call 结束
+# 4. Tool call ends
 {"type": "content_block_stop"}
 {"type": "message_stop"}
 ```
 
-后端 Spring AI 的 `StreamingChatClient` 会将以上事件封装，开发者通过回调分别处理文本 delta 和 tool call。
+Spring AI's `StreamingChatClient` wraps these events; developers handle text deltas and tool calls through separate callbacks.
 
-**tool_choice 设置**：
+**`tool_choice` setting**:
 
 ```json
 "tool_choice": {"type": "auto"}
 ```
 
-不强制要求每次都调用，模型在合适时调用（实际上在 System Prompt 中明确要求每次必须调用）。
+This does not force every call to invoke the tool — the model calls it when appropriate (the system prompt explicitly requires it on every turn).
 
-#### 4.4.3 System Prompt 设计（防幻觉版）
+#### 4.4.3 System Prompt Design (Anti-Hallucination)
 
-`PromptAssembler.assemble()` 动态构建包含以下四段的 System Prompt：
+`PromptAssembler.assemble()` dynamically builds a system prompt with the following four sections:
 
-**第一段：身份设定**
+**Section 1: Identity**
 ```
-你是 {ownerName} 的 AI 个人助手。
-{ownerName} 的简介：{tagline}   ← tagline 为空时省略此行
-```
-
-**第二段：行为准则（始终注入，核心防幻觉约束）**
-```
-## 行为准则（必须严格遵守）
-1. 你只能基于以下「{ownerName} 的知识库」中提供的内容回答访客的问题。
-2. 禁止使用知识库以外的任何信息，包括你的通用知识或训练数据。
-3. 不得推测、补充或编造知识库中未明确提及的内容。
-4. 对于「你好」「谢谢」等一般性问候或闲聊，可以友好回应，无需拒绝。
-5. 若知识库中找不到访客问题的答案，必须礼貌说明，并建议访客直接联系 {ownerName}。
-6. 使用中文回复（除非访客使用其他语言）。
+You are {ownerName}'s AI personal assistant.
+{ownerName}'s bio: {tagline}   ← omitted when tagline is blank
 ```
 
-**第三段：知识库（有/无内容两种分支）**
-
-有 RAG 内容时：
+**Section 2: Rules (always injected — core anti-hallucination constraint)**
 ```
-## {ownerName} 的知识库
-以下是关于 {ownerName} 的参考资料，你的所有具体回答必须严格基于此内容：
+## Rules (MUST follow strictly)
+1. You may only answer visitors' questions based on the "{ownerName}'s Knowledge Base" content provided below.
+2. You must not use any information outside the knowledge base, including your general knowledge or training data.
+3. Do not speculate, supplement, or fabricate anything not explicitly stated in the knowledge base.
+4. For general greetings or small talk (e.g., "hello", "thank you"), respond warmly without refusing.
+5. If you cannot find the answer to a visitor's question in the knowledge base, politely explain this and suggest the visitor contact {ownerName} directly.
+6. Reply in the same language the visitor uses.
+```
+
+**Section 3: Knowledge Base (two branches — with or without content)**
+
+With RAG content:
+```
+## {ownerName}'s Knowledge Base
+The following is reference material about {ownerName}. All specific answers must be strictly based on this content:
 
 1. **{title}**
 {content}
@@ -415,92 +415,91 @@ Claude 流式 API 的事件序列如下：
 2. ...
 ```
 
-无 RAG 内容时（空知识库兜底，防止 AI 自由发挥）：
+Without RAG content (empty knowledge base fallback — prevents AI from answering freely):
 ```
-## {ownerName} 的知识库
-当前暂无与该问题相关的知识库内容。
-请告知访客你暂时无法提供该信息，并友好地建议其直接联系 {ownerName} 获取更多信息。
-```
-
-**第四段：工具调用指令（仅提供商支持 Function Calling 时注入）**
-```
-## 重要指令
-在完成每次回答后，你必须调用 `suggest_followups` 工具，
-提供 2-3 个与当前话题相关的跟进问题，帮助访客深入了解。
+## {ownerName}'s Knowledge Base
+There is currently no relevant knowledge base content for this question.
+Please inform the visitor that you cannot provide this information at this time, and kindly suggest they contact {ownerName} directly for more details.
 ```
 
-**防幻觉设计要点：**
-- 行为准则段落始终注入，不因 RAG 状态变化而省略
-- RAG 为空时显式声明无内容，而非静默省略知识库段落——避免 AI 将"没有约束"等同于"可自由回答"
-- 条款 4（允许问候回应）防止约束过强导致 AI 拒绝所有非知识库问题
+**Section 4: Tool Call Instruction (injected only when the provider supports Function Calling)**
+```
+## Important Instruction
+After completing each response, you MUST call the `suggest_followups` tool
+and provide 2–3 follow-up questions related to the current topic to help visitors learn more.
+```
 
-### 4.5 多模型提供商抽象
+**Anti-hallucination design highlights:**
+- The Rules section is always injected regardless of RAG state
+- When RAG is empty, the absence of content is explicitly stated rather than silently omitting the knowledge base section — preventing the AI from interpreting "no constraints" as "free to answer"
+- Rule 4 (allow greeting responses) prevents over-constraining the AI into refusing all non-knowledge-base questions
 
-#### 4.5.1 设计目标
+### 4.5 Multi-Provider AI Abstraction
 
-PRD 6.3 要求 AI 服务层支持运行时切换 Claude、OpenAI、本地模型。设计原则：
+#### 4.5.1 Design Goals
 
-- `ChatService` 只依赖 `AiChatProvider` 接口，不感知具体提供商
-- 通过 `application.yml` 中的 `ai.provider` 配置项选择实现
-- **本地模型（Ollama）始终真实调用**，`ai.mock` 对其无效；mock 开关仅对云端提供商生效
-- 后续直接替换对应实现类，不改调用方代码
+PRD 6.3 requires the AI service layer to support runtime switching between Claude, OpenAI, and local models. Design principles:
 
-#### 4.5.2 接口定义
+- `ChatService` depends only on the `AiChatProvider` interface — it is unaware of the specific provider
+- The provider is selected via the `ai.provider` config key in `application.yml`
+- **Local model (Ollama) always makes real calls**; `ai.mock` has no effect on it; the mock switch only applies to cloud providers
+- Swapping providers in the future only requires replacing the implementation class, not the calling code
+
+#### 4.5.2 Interface Definition
 
 ```java
 // ai/provider/AiChatProvider.java
 public interface AiChatProvider {
 
     /**
-     * 流式对话，返回 token 流。
-     * 约定：流结束时，最后一个元素以 "[DONE]" 标记；
-     *       suggest_followups 的 JSON 通过 SuggestFollowupsTool 捕获，不混入流。
+     * Streaming chat — returns a token stream.
+     * Contract: suggest_followups JSON is captured via SuggestFollowupsTool, not mixed into the stream.
      *
-     * @param messages  完整的对话历史（含 system prompt）
-     * @param tools     注册的工具实例列表（Spring AI @Tool bean）
-     * @return Flux<String> token 增量文本流
+     * @param messages  Complete conversation history (including system prompt)
+     * @param tools     Registered tool instances (Spring AI @Tool beans)
+     * @return Flux<String> incremental token text stream
      */
     Flux<String> streamChat(List<Message> messages, Object... tools);
 
     /**
-     * 提供商标识，用于日志和监控
+     * Provider identifier — used for logging and monitoring.
      */
     String providerName();
 }
 ```
 
-#### 4.5.3 提供商实现概览
+#### 4.5.3 Provider Implementation Overview
 
-| 实现类 | 状态 | 说明 |
-|--------|------|------|
-| `GoogleChatProvider` | ✅ 真实实现（默认） | 调用 Google AI Studio Gemini API，默认模型 `gemini-2.0-flash`，需要 `GOOGLE_AI_API_KEY` |
-| `ClaudeChatProvider` | ✅ 真实实现 | 调用 Anthropic Claude API，需要 `ANTHROPIC_API_KEY` |
-| `OllamaChatProvider` | ✅ 真实实现（可选） | 调用本地 Ollama HTTP API，忽略 `ai.mock`；docker-compose 中默认注释，需手动启用 |
-| `MockChatProvider` | ✅ Mock fallback | 云端提供商（google/claude）且 `ai.mock=true` 时激活，返回模拟数据，无需 API Key |
+| Implementation | Status | Notes |
+|----------------|--------|-------|
+| `GoogleChatProvider` | ✅ Real (default) | Calls Google AI Studio Gemini API; default model `gemini-2.0-flash`; requires `GOOGLE_AI_API_KEY` |
+| `ClaudeChatProvider` | ✅ Real | Calls Anthropic Claude API; requires `ANTHROPIC_API_KEY` |
+| `OllamaChatProvider` | ✅ Real (optional) | Calls local Ollama HTTP API; ignores `ai.mock`; commented out in docker-compose by default |
+| `MockChatProvider` | ✅ Mock fallback | Activated when a cloud provider (google/claude) has `ai.mock=true`; returns mock data; no API key needed |
 
-#### 4.5.4 配置驱动选择
+#### 4.5.4 Configuration-Driven Selection
 
-切换规则：
+Switching rules:
 
-| `ai.provider` | `ai.mock` | 激活的 Bean |
+| `ai.provider` | `ai.mock` | Active Bean |
 |---------------|-----------|-------------|
-| `google`（默认） | `false`（默认） | `GoogleChatProvider` |
+| `google` (default) | `false` (default) | `GoogleChatProvider` |
 | `google` | `true` | `MockChatProvider` |
 | `claude` | `false` | `ClaudeChatProvider` |
 | `claude` | `true` | `MockChatProvider` |
-| `ollama` | 任意值（忽略） | `OllamaChatProvider` |
+| `ollama` | any (ignored) | `OllamaChatProvider` |
 
 ```yaml
 # application.yml
 ai:
-  provider: ${AI_PROVIDER:google}   # 可选: google（默认）| claude | ollama
-  mock: ${AI_MOCK:false}            # 仅对云端提供商生效，ollama 忽略此项
+  provider: ${AI_PROVIDER:google}   # options: google (default) | claude | ollama
+  mock: ${AI_MOCK:false}            # only affects cloud providers; ollama ignores this
 ```
 
-Spring 通过 `@ConditionalOnProperty` 在启动时装配唯一的 `AiChatProvider` Bean：
+Spring wires up a single `AiChatProvider` Bean at startup using `@ConditionalOnProperty`:
 
 ```java
-// Google Gemini（默认）
+// Google Gemini (default)
 @Configuration
 @ConditionalOnProperty(name = "ai.provider", havingValue = "google", matchIfMissing = true)
 static class GoogleProviderConfig {
@@ -511,7 +510,7 @@ static class GoogleProviderConfig {
     public AiChatProvider mockAiChatProvider() { ... }
 }
 
-// Claude 云端
+// Claude cloud
 @Configuration
 @ConditionalOnProperty(name = "ai.provider", havingValue = "claude")
 static class ClaudeProviderConfig {
@@ -522,28 +521,28 @@ static class ClaudeProviderConfig {
     public AiChatProvider mockAiChatProvider() { ... }
 }
 
-// 本地 Ollama：始终真实调用，忽略 ai.mock
+// Local Ollama: always makes real calls; ignores ai.mock
 @Bean
 @ConditionalOnProperty(name = "ai.provider", havingValue = "ollama")
 public AiChatProvider ollamaAiChatProvider(...) { ... }
 ```
 
-#### 4.5.5 Ollama 本地模型说明（可选）
+#### 4.5.5 Ollama Local Model Notes (Optional)
 
-- **运行方式**：独立进程，暴露 HTTP API（`http://localhost:11434`）
-- **Spring AI 集成**：`spring-ai-starter-model-ollama` 提供 `OllamaChatModel` Bean
-- **推荐模型**：
-  - 中英双语对话：`qwen2.5:7b`（阿里通义，7B 参数，消费级 GPU / 16GB 内存 CPU 可运行）
-  - 仅英文或低内存：`llama3.2:3b`
-- **Tool Use 支持**：Ollama 0.3+ 支持 OpenAI 兼容的 function calling，Spring AI 的 `@Tool` 注解可直接使用
-- **注意**：Ollama 不是默认提供商，默认使用 Google Gemini；仅在需要本地推理或数据不出境时启用
+- **How it runs**: standalone process exposing an HTTP API (`http://localhost:11434`)
+- **Spring AI integration**: `spring-ai-starter-model-ollama` provides the `OllamaChatModel` Bean
+- **Recommended models**:
+  - Bilingual (Chinese + English): `qwen2.5:7b` (Alibaba Qwen, 7B params, runs on consumer GPU / 16 GB CPU RAM)
+  - English-only or low memory: `llama3.2:3b`
+- **Tool Use support**: Ollama 0.3+ supports OpenAI-compatible function calling; Spring AI's `@Tool` annotation works directly
+- **Note**: Ollama is not the default provider; Google Gemini is used by default. Enable Ollama only when local inference or on-premise data processing is required.
 
-#### 4.5.6 Docker Compose 本地模型支持
+#### 4.5.6 Docker Compose Local Model Support
 
-`docker-compose.yml` 中 Ollama 服务**默认注释**，仅在明确使用 `AI_PROVIDER=ollama` 时取消注释：
+The Ollama service in `docker-compose.yml` is **commented out by default** and should only be uncommented when explicitly using `AI_PROVIDER=ollama`:
 
 ```yaml
-# ─── Ollama 本地模型（可选，仅在 AI_PROVIDER=ollama 时需要）────
+# ─── Ollama local model (optional; only needed when AI_PROVIDER=ollama) ────
 # ollama:
 #   image: ollama/ollama:latest
 #   container_name: dossier-ollama
@@ -551,58 +550,58 @@ public AiChatProvider ollamaAiChatProvider(...) { ... }
 #     - ollama_data:/root/.ollama
 ```
 
-启用后，后端环境变量配置：
+When enabled, configure the backend environment:
 
 ```yaml
 AI_PROVIDER: ollama
-AI_OLLAMA_BASE_URL: http://ollama:11434   # Docker 网络内访问
+AI_OLLAMA_BASE_URL: http://ollama:11434   # Docker network internal address
 ```
 
 ---
 
-### 4.6 会话管理
+### 4.6 Session Management
 
-#### 4.6.1 游客会话（localStorage）
+#### 4.6.1 Guest Session (localStorage)
 
 ```typescript
-// 游客会话存储结构（localStorage key: "guest_conversation"）
+// Guest session storage structure (localStorage key: "guest_conversation")
 interface GuestConversation {
-  id: string;                  // 前端生成的临时 UUID
+  id: string;                  // Temporary UUID generated on the frontend
   messages: LocalMessage[];
-  lastSuggestions: string[];   // 最近一次的动态提示词
+  lastSuggestions: string[];   // Most recent dynamic suggestions
   createdAt: string;
 }
 ```
 
-- 游客的 `conversationId` 以 `guest_` 前缀区分
-- 发送消息时携带完整的本地 `history`（最多 20 条），后端无状态处理
-- 后端**不持久化**游客消息（或可选持久化，但不与用户绑定）
+- Guest `conversationId` values are prefixed with `guest_` for identification
+- Each message send includes the full local `history` (up to 20 entries); the backend is stateless
+- The backend **does not persist** guest messages (or may persist optionally without user binding)
 
-#### 4.6.2 登录用户会话（服务端持久化）
+#### 4.6.2 Logged-in User Session (Server-Side Persistence)
 
-- 登录后，`conversationId` 为服务端生成的真实 ID
-- 每次发消息前，前端**不需要**携带 history，后端从数据库加载最近 N 条消息
-- 加载历史时，同时返回 `lastSuggestions`（最后一条 assistant message 关联的动态提示词）
+- After login, `conversationId` is a real server-generated ID
+- Before sending each message, the frontend **does not need** to include history; the backend loads the most recent N messages from the database
+- When loading history, `lastSuggestions` (the dynamic suggestions linked to the last assistant message) are returned at the same time
 
 ---
 
-## 5. 数据库设计
+## 5. Database Design
 
-### 5.1 关键表结构
+### 5.1 Key Table Structures
 
 ```sql
--- 拥有者信息
+-- Owner information
 CREATE TABLE owners (
     id          BIGSERIAL PRIMARY KEY,
     name        VARCHAR(100)  NOT NULL,
     tagline     VARCHAR(200),
     avatar_url  TEXT,
     contact     JSONB,         -- { "email": "...", "wechat": "..." }
-    config      JSONB,         -- 预留扩展配置
+    config      JSONB,         -- reserved for future config
     created_at  TIMESTAMPTZ   DEFAULT NOW()
 );
 
--- 客户用户（SSO）
+-- Client users (SSO)
 CREATE TABLE client_users (
     id            BIGSERIAL PRIMARY KEY,
     sso_provider  VARCHAR(50)  NOT NULL,  -- 'google' | 'github'
@@ -613,17 +612,17 @@ CREATE TABLE client_users (
     UNIQUE (sso_provider, sso_id)
 );
 
--- 会话
+-- Conversations
 CREATE TABLE conversations (
     id          BIGSERIAL PRIMARY KEY,
     owner_id    BIGINT       REFERENCES owners(id),
-    user_id     BIGINT       REFERENCES client_users(id),  -- NULL = 游客
+    user_id     BIGINT       REFERENCES client_users(id),  -- NULL = guest
     source      VARCHAR(20)  NOT NULL,  -- 'client' | 'admin'
     created_at  TIMESTAMPTZ  DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  DEFAULT NOW()
 );
 
--- 消息
+-- Messages
 CREATE TABLE messages (
     id              BIGSERIAL PRIMARY KEY,
     conversation_id BIGINT       NOT NULL REFERENCES conversations(id),
@@ -632,7 +631,7 @@ CREATE TABLE messages (
     created_at      TIMESTAMPTZ  DEFAULT NOW()
 );
 
--- 动态提示词（关联到 assistant message）
+-- Dynamic suggestions (linked to assistant messages)
 CREATE TABLE dynamic_suggestions (
     id          BIGSERIAL PRIMARY KEY,
     message_id  BIGINT  NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -640,7 +639,7 @@ CREATE TABLE dynamic_suggestions (
     sort_order  INT     NOT NULL DEFAULT 0
 );
 
--- 初始提示词（管理端配置）
+-- Initial suggestions (configured in admin console)
 CREATE TABLE prompt_suggestions (
     id          BIGSERIAL PRIMARY KEY,
     owner_id    BIGINT       NOT NULL REFERENCES owners(id),
@@ -649,7 +648,7 @@ CREATE TABLE prompt_suggestions (
     enabled     BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
--- 知识条目（含向量）
+-- Knowledge entries (with vector)
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE knowledge_entries (
@@ -663,12 +662,12 @@ CREATE TABLE knowledge_entries (
     created_at  TIMESTAMPTZ   DEFAULT NOW()
 );
 
--- 向量检索索引（HNSW，近似最近邻，查询更快）
+-- Vector retrieval index (HNSW, approximate nearest neighbor, faster queries)
 CREATE INDEX idx_knowledge_embedding ON knowledge_entries
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
 
--- 上传文档
+-- Uploaded documents
 CREATE TABLE documents (
     id          BIGSERIAL PRIMARY KEY,
     owner_id    BIGINT        NOT NULL REFERENCES owners(id),
@@ -683,9 +682,9 @@ CREATE TABLE documents (
 
 ---
 
-## 6. API 接口设计
+## 6. API Design
 
-### 6.1 流式对话（核心接口）
+### 6.1 Streaming Chat (Core Endpoint)
 
 ```
 POST /api/owners/{username}/chat/stream
@@ -694,21 +693,21 @@ Accept: text/event-stream
 
 Request Body:
 {
-  "conversationId": "123",       // 可选，游客无此字段
-  "message": "他擅长哪些技术？",
-  "history": [                   // 仅游客携带，登录用户留空
+  "conversationId": "123",       // Optional; omitted for guests
+  "message": "What technologies does he specialize in?",
+  "history": [                   // Guests only; logged-in users leave this empty
     { "role": "user", "content": "..." },
     { "role": "assistant", "content": "..." }
   ]
 }
 
-Response: text/event-stream（见 4.3.1 事件定义）
+Response: text/event-stream (see event definitions in 4.3.1)
 ```
 
-### 6.2 会话接口
+### 6.2 Conversation Endpoints
 
 ```
-# 获取会话历史（含最后一次动态提示词）
+# Get conversation history (including the last set of dynamic suggestions)
 GET /api/conversations/{conversationId}
 
 Response:
@@ -720,105 +719,105 @@ Response:
       "id": 2,
       "role": "assistant",
       "content": "...",
-      "suggestions": ["追问1", "追问2"],   // 该消息关联的动态提示词
+      "suggestions": ["Follow-up 1", "Follow-up 2"],   // Dynamic suggestions for this message
       "createdAt": "..."
     }
   ],
-  "lastSuggestions": ["追问1", "追问2"]  // 最后一条 assistant message 的提示词（快捷访问）
+  "lastSuggestions": ["Follow-up 1", "Follow-up 2"]  // Suggestions from the last assistant message (shortcut)
 }
 ```
 
-### 6.3 初始提示词接口
+### 6.3 Initial Suggestions Endpoint
 
 ```
-# 获取客户端首屏初始提示词
+# Get initial home-screen suggestions for the client portal
 GET /api/suggestions/initial
 
 Response:
 {
-  "suggestions": ["他的主要项目有哪些？", "擅长哪些技术？", "如何合作？"]
+  "suggestions": ["What are his main projects?", "What technologies does he specialize in?", "How can we collaborate?"]
 }
 ```
 
-### 6.4 拥有者简介接口
+### 6.4 Owner Profile Endpoint
 
 ```
 GET /api/owners/{username}/profile
 
 Response:
 {
-  "name": "张三",
-  "tagline": "全栈开发者 & 独立产品人",
+  "name": "John Smith",
+  "tagline": "Full-Stack Developer & Independent Product Builder",
   "avatarUrl": "https://..."
 }
 
-GET /api/owners/{username}/suggestions    — 初始提示词列表
+GET /api/owners/{username}/suggestions    — initial suggestion list
 ```
 
 ---
 
-## 7. 前端核心组件设计
+## 7. Frontend Core Component Design
 
 ```
-app/[ownerUsername]/chat/page.tsx      # 客户端主页（动态路由）
+app/[ownerUsername]/chat/page.tsx      # Client portal main page (dynamic route)
   └── <ChatPage>
-        ├── <OwnerProfile>             # 头像、姓名、tagline（首屏展示）
-        ├── <MessageList>              # 消息列表
-        │     ├── <MessageBubble>      # 单条消息（支持 Markdown）
-        │     │     └── <SuggestionCards>  # 该消息下方的动态提示词卡片
-        │     └── <StreamingBubble>   # 正在流式输出的全宽回答区域（实时更新）
-        ├── <InitialSuggestions>       # 首屏未对话时展示的初始提示词
-        └── <ChatInput>                # 底部输入框 + 发送按钮
+        ├── <OwnerProfile>             # Avatar, name, tagline (home screen display)
+        ├── <MessageList>              # Message list
+        │     ├── <MessageBubble>      # Single message (supports Markdown)
+        │     │     └── <SuggestionCards>  # Dynamic suggestion cards below this message
+        │     └── <StreamingBubble>   # Full-width reply area during streaming (live updates)
+        ├── <InitialSuggestions>       # Initial suggestions shown on the home screen before any chat
+        └── <ChatInput>                # Bottom input bar + send button
 ```
 
-**状态管理**：无需全局状态库（Zustand/Redux），使用 React Context + `useChatStream` Hook 管理对话状态。
+**State management**: no global state library (Zustand/Redux) needed; use React Context + `useChatStream` hook to manage conversation state.
 
 ---
 
-## 8. MVP 最小跑通路径
+## 8. MVP Minimum Viable Path
 
-按依赖顺序，最小化实现核心链路：
+Minimum implementation of the core flow, in dependency order:
 
 ```
-阶段 1：静态骨架（1~2 天）
-  ✓ Next.js 项目初始化，客户端页面布局（参考 Gemini 风格）
-  ✓ Spring Boot 项目初始化，数据库表创建（Flyway migration）
+Phase 1: Static skeleton (1–2 days)
+  ✓ Next.js project initialized; client portal page layout (Gemini-inspired)
+  ✓ Spring Boot project initialized; database tables created (Flyway migration)
 
-阶段 2：无 RAG 的流式对话（1~2 天）
-  ✓ 后端：/api/chat/stream 接口，直接调用 Claude 流式 API
-  ✓ 后端：Tool Use 接入，捕获 suggest_followups 结果
-  ✓ 后端：SSE 推送 token + done 事件
-  ✓ 前端：useChatStream Hook，实时渲染流式文本
-  ✓ 前端：done 事件后展示动态提示词卡片
-  → 目标：能对话 + 出提示词卡片，AI 使用通用知识（无知识库）
+Phase 2: Streaming chat without RAG (1–2 days)
+  ✓ Backend: /api/chat/stream endpoint; direct call to AI streaming API
+  ✓ Backend: Tool Use integration; capture suggest_followups result
+  ✓ Backend: SSE push of token + done events
+  ✓ Frontend: useChatStream hook; real-time streaming text rendering
+  ✓ Frontend: display dynamic suggestion cards after done event
+  → Goal: working chat + suggestion cards; AI uses general knowledge (no knowledge base)
 
-阶段 3：接入知识库（2~3 天）
-  ✓ 后端：pgvector 配置，EmbeddingService 封装
-  ✓ 后端：手动插入 2~3 条测试知识条目（跳过管理端录入）
-  ✓ 后端：RAG 检索，注入 System Prompt
-  → 目标：AI 能基于知识库内容回答，提示词与内容相关
+Phase 3: Knowledge base integration (2–3 days)
+  ✓ Backend: pgvector setup; EmbeddingService wrapper
+  ✓ Backend: manually insert 2–3 test knowledge entries (skip admin console entry)
+  ✓ Backend: RAG retrieval; inject into system prompt
+  → Goal: AI answers based on knowledge base content; suggestions are topic-relevant
 
-阶段 4：拥有者简介 + 初始提示词（1 天）
-  ✓ 数据库初始化拥有者数据（硬编码）
-  ✓ /api/owner/profile 接口
-  ✓ /api/suggestions/initial 接口
-  ✓ 前端首屏展示 Profile + 初始提示词卡片
-  → 目标：完整的首屏体验
+Phase 4: Owner profile + initial suggestions (1 day)
+  ✓ Initialize owner data in the database (hardcoded)
+  ✓ /api/owner/profile endpoint
+  ✓ /api/suggestions/initial endpoint
+  ✓ Frontend home screen shows profile + initial suggestion cards
+  → Goal: complete home-screen experience
 
-阶段 5：管理端基础录入（后续）
-  ✓ 文本录入知识库
-  ✓ 知识条目列表管理
+Phase 5: Admin console basic entry (follow-up)
+  ✓ Text entry to knowledge base
+  ✓ Knowledge entry list management
 ```
 
-**阶段 2 是最关键的验证节点**，跑通后整个核心链路的技术风险即解除。
+**Phase 2 is the most critical validation milestone** — once it passes, the core technical risks are resolved.
 
 ---
 
-## 9. 关键技术风险与应对
+## 9. Key Technical Risks and Mitigations
 
-| 风险 | 说明 | 应对 |
-|------|------|------|
-| Tool Use 在流式模式下的兼容性 | Spring AI 对 Claude 流式 Tool Use 的封装可能不完整 | 优先验证；必要时直接使用 Anthropic Java SDK 或 HTTP Client 手写 |
-| SSE 连接在 Next.js 中间层丢失 | Next.js App Router 的 API Route 对长连接支持有限 | 前端直接请求后端（跨域配置），跳过 Next.js 中间层转发 |
-| pgvector 向量维度与模型不匹配 | 不同 embedding 模型输出维度不同，建表时需确认 | 初始化时统一用 `text-embedding-3-small`（1536 维）或 Claude 的 embedding（实际确认维度） |
-| 游客 history 过长 | 游客携带全量 history 可能导致 token 超限 | 截取最近 10 轮（20 条消息），超出部分丢弃最早的 |
+| Risk | Description | Mitigation |
+|------|-------------|------------|
+| Tool Use compatibility in streaming mode | Spring AI's wrapping of Claude streaming Tool Use may be incomplete | Validate first; if needed, use the Anthropic Java SDK or a hand-written HTTP client |
+| SSE connection lost through Next.js middleware | Next.js App Router API routes have limited support for long-lived connections | Frontend requests the backend directly (with CORS config), bypassing the Next.js middleware layer |
+| pgvector dimension mismatch with model | Different embedding models produce different vector dimensions; the table must be created with the correct size | Standardize on `text-embedding-3-small` (1536 dims) or confirm the Claude embedding dimension before creating the table |
+| Guest history too long | Sending full history from a guest may exceed the token limit | Truncate to the most recent 10 turns (20 messages); discard the oldest beyond that |

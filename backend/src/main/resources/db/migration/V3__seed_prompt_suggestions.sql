@@ -1,9 +1,9 @@
 -- V3__seed_prompt_suggestions.sql
--- TDD 5.3 — 初始化示例 Prompt Suggestions 数据
+-- TDD 5.3 — Seed initial demo Prompt Suggestions data
 
 INSERT INTO prompt_suggestions (owner_id, text, sort_order, enabled)
 VALUES
-    (1, '你平时做什么项目？有没有开源作品？', 0, TRUE),
-    (1, '你的技术栈是什么？最擅长哪个方向？', 1, TRUE),
-    (1, '你有接外包或者合作的意向吗？', 2, TRUE)
+    (1, 'What kinds of projects do you work on? Any open-source work?', 0, TRUE),
+    (1, 'What is your tech stack? What are your strongest areas?', 1, TRUE),
+    (1, 'Are you open to freelance work or collaboration?', 2, TRUE)
 ON CONFLICT DO NOTHING;

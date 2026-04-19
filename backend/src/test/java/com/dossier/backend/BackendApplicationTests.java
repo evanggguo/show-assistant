@@ -4,18 +4,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * 应用启动入口测试
- * 完整的 Spring Context 加载（contextLoads）需要运行中的 PostgreSQL，
- * 属于集成测试范畴，在没有数据库的 CI 环境中跳过。
- * 单元测试覆盖由各模块的 *Test 类负责。
+ * Application entry point test.
+ * Full Spring Context loading (contextLoads) requires a running PostgreSQL instance
+ * and is an integration test — skipped in CI environments without a database.
+ * Unit test coverage is handled by each module's *Test class.
  */
 class BackendApplicationTests {
 
     @Test
-    @DisplayName("BackendApplication 主类存在且可实例化")
+    @DisplayName("BackendApplication main class exists and can be instantiated")
     void mainClassExists() {
-        // 验证主类存在，不启动 Spring Context（无需数据库）
+        // Verify main class exists without starting the Spring Context (no database needed)
         BackendApplication app = new BackendApplication();
-        // 有类即通过，Spring Context 集成测试见 docker-compose 环境
+        // Passes if the class exists; Spring Context integration tests run in the docker-compose environment
     }
 }

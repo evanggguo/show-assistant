@@ -1,8 +1,7 @@
 package com.dossier.backend.common.exception;
 
 /**
- * TDD 6.2 — 资源未找到异常
- * 用于表示请求的资源不存在（对应 HTTP 404）
+ * TDD 6.2 — Resource not found exception (HTTP 404).
  */
 public class ResourceNotFoundException extends BusinessException {
 
