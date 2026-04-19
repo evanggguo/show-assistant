@@ -1,5 +1,5 @@
 -- V5__add_owner_credentials.sql
--- 为 owners 表增加登录凭证字段，支持多 owner 账号管理
+-- Add login credential columns to owners table for multi-owner account management
 
 ALTER TABLE owners
     ADD COLUMN IF NOT EXISTS username      VARCHAR(50),

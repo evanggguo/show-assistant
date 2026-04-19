@@ -14,9 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.Customizer;
 
-/**
- * Spring Security 配置 — JWT 无状态认证，管理端路径保护
- */
+/** Spring Security configuration — stateless JWT authentication, admin path protection. */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -31,7 +29,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 客户端公开接口
+                // Public client endpoints
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(
                     "/api/owner/**",
@@ -40,11 +38,11 @@ public class SecurityConfig {
                     "/api/conversations/**",
                     "/api/owners/**"
                 ).permitAll()
-                // 管理端登录接口公开
+                // Admin login endpoint is public
                 .requestMatchers("/api/admin/auth/login").permitAll()
-                // 超级管理接口公开（自行校验写死密码头）
+                // Super-admin endpoints are public (validated via a fixed token header)
                 .requestMatchers("/api/super-admin/**").permitAll()
-                // 其余管理端接口需要 ADMIN 角色
+                // All other admin endpoints require ADMIN role
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
@@ -52,12 +50,12 @@ public class SecurityConfig {
                 .authenticationEntryPoint((req, res, e) -> {
                     res.setStatus(401);
                     res.setContentType("application/json;charset=UTF-8");
-                    res.getWriter().write("{\"success\":false,\"code\":\"UNAUTHORIZED\",\"message\":\"请先登录\"}");
+                    res.getWriter().write("{\"success\":false,\"code\":\"UNAUTHORIZED\",\"message\":\"Please log in first\"}");
                 })
                 .accessDeniedHandler((req, res, e) -> {
                     res.setStatus(403);
                     res.setContentType("application/json;charset=UTF-8");
-                    res.getWriter().write("{\"success\":false,\"code\":\"FORBIDDEN\",\"message\":\"权限不足\"}");
+                    res.getWriter().write("{\"success\":false,\"code\":\"FORBIDDEN\",\"message\":\"Insufficient permissions\"}");
                 })
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

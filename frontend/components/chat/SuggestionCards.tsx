@@ -1,19 +1,19 @@
 'use client'
 
 /**
- * SuggestionCards — 提示词卡片组
- * 对应 TDD 1.4 首屏初始提示词 & 动态提示词（done 事件后展示）
+ * SuggestionCards — Prompt suggestion card group.
+ * Corresponds to TDD 1.4 home-screen initial suggestions & dynamic suggestions (shown after the done event).
  *
- * 横向可滚动，点击卡片触发 onSelect 回调（发送给 ChatInput/ChatPage）
+ * Horizontally scrollable; clicking a card fires the onSelect callback (forwarded to ChatInput/ChatPage).
  */
 
 import React from 'react'
 
 interface SuggestionCardsProps {
   suggestions: string[]
-  /** 点击某张卡片时的回调 */
+  /** Callback when a card is clicked */
   onSelect: (text: string) => void
-  /** 是否禁用（流式输出中） */
+  /** Whether cards are disabled (during streaming) */
   disabled?: boolean
 }
 

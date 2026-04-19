@@ -21,8 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * 超级管理服务 — owner 账号 CRUD
- * 初始密码统一为 888888
+ * Super-admin service — owner account CRUD.
+ * Default initial password: 888888.
  */
 @Slf4j
 @Service
@@ -50,7 +50,7 @@ public class SuperAdminService {
     @Transactional
     public OwnerSummaryResponse createOwner(CreateOwnerRequest request) {
         if (ownerRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException("USERNAME_TAKEN", "用户名已被占用");
+            throw new BusinessException("USERNAME_TAKEN", "Username is already taken");
         }
 
         Owner owner = Owner.builder()

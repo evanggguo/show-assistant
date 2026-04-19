@@ -14,11 +14,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * PromptAssembler 单元测试
- * 覆盖 System Prompt 的构建逻辑，包括 RAG 上下文注入和 Owner 信息格式化
+ * Unit tests for PromptAssembler.
+ * Covers system prompt construction, RAG context injection, and owner info formatting.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("PromptAssembler 单元测试")
+@DisplayName("PromptAssembler Unit Tests")
 class PromptAssemblerTest {
 
     private PromptAssembler promptAssembler;
@@ -29,13 +29,13 @@ class PromptAssemblerTest {
     }
 
     @Test
-    @DisplayName("无 RAG 上下文时，prompt 包含行为准则和空知识库兜底声明，不含具体条目")
+    @DisplayName("With no RAG context, prompt contains rules and empty-knowledge fallback, but no specific entries")
     void should_not_include_rag_section_when_no_context() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("张三")
-            .tagline("全栈开发者")
+            .name("Zhang San")
+            .tagline("Full-stack Developer")
             .build();
         List<KnowledgeEntryDto> emptyContext = Collections.emptyList();
 
@@ -43,26 +43,26 @@ class PromptAssemblerTest {
         String prompt = promptAssembler.assemble(ownerProfile, emptyContext);
 
         // then
-        assertThat(prompt).contains("张三");
+        assertThat(prompt).contains("Zhang San");
         assertThat(prompt).contains("Rules (MUST follow strictly)");
-        assertThat(prompt).contains("当前暂无与该问题相关的知识库内容");
+        assertThat(prompt).contains("There is currently no relevant knowledge base content");
         assertThat(prompt).contains("suggest_followups");
     }
 
     @Test
-    @DisplayName("有 RAG 上下文时，prompt 包含知识库段落和条目内容，并有行为准则约束")
+    @DisplayName("With RAG context, prompt contains knowledge base section, entry content, and rules constraint")
     void should_include_rag_section_when_context_provided() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("李四")
-            .tagline("后端架构师")
+            .name("Li Si")
+            .tagline("Backend Architect")
             .build();
         List<KnowledgeEntryDto> ragContext = List.of(
             KnowledgeEntryDto.builder()
                 .id(1L)
-                .title("Spring Boot 经验")
-                .content("5年 Spring Boot 开发经验")
+                .title("Spring Boot Experience")
+                .content("5 years of Spring Boot development experience")
                 .build()
         );
 
@@ -70,19 +70,19 @@ class PromptAssemblerTest {
         String prompt = promptAssembler.assemble(ownerProfile, ragContext);
 
         // then
-        assertThat(prompt).contains("知识库");
+        assertThat(prompt).contains("Knowledge Base");
         assertThat(prompt).contains("Rules (MUST follow strictly)");
-        assertThat(prompt).contains("Spring Boot 经验");
-        assertThat(prompt).contains("5年 Spring Boot 开发经验");
+        assertThat(prompt).contains("Spring Boot Experience");
+        assertThat(prompt).contains("5 years of Spring Boot development experience");
     }
 
     @Test
-    @DisplayName("tagline 为 null 时，prompt 中不含 tagline 行")
+    @DisplayName("When tagline is null, prompt does not contain the tagline line")
     void should_not_include_tagline_when_null() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("王五")
+            .name("Wang Wu")
             .tagline(null)
             .build();
 
@@ -90,17 +90,17 @@ class PromptAssemblerTest {
         String prompt = promptAssembler.assemble(ownerProfile, Collections.emptyList());
 
         // then
-        assertThat(prompt).contains("王五");
-        assertThat(prompt).doesNotContain("的简介：");
+        assertThat(prompt).contains("Wang Wu");
+        assertThat(prompt).doesNotContain("'s bio:");
     }
 
     @Test
-    @DisplayName("tagline 为空字符串时，prompt 中不含 tagline 行")
+    @DisplayName("When tagline is blank, prompt does not contain the tagline line")
     void should_not_include_tagline_when_blank() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("赵六")
+            .name("Zhao Liu")
             .tagline("   ")
             .build();
 
@@ -108,30 +108,30 @@ class PromptAssemblerTest {
         String prompt = promptAssembler.assemble(ownerProfile, Collections.emptyList());
 
         // then
-        assertThat(prompt).contains("赵六");
-        assertThat(prompt).doesNotContain("赵六 的简介：");
+        assertThat(prompt).contains("Zhao Liu");
+        assertThat(prompt).doesNotContain("Zhao Liu's bio:");
     }
 
     @Test
-    @DisplayName("多条 RAG 条目时，按编号顺序拼入 prompt")
+    @DisplayName("Multiple RAG entries are assembled into the prompt in numbered order")
     void should_include_multiple_rag_entries_in_order() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("测试人")
+            .name("Tester")
             .build();
         List<KnowledgeEntryDto> ragContext = List.of(
             KnowledgeEntryDto.builder()
-                .title("项目 A")
-                .content("内容 A")
+                .title("Project A")
+                .content("Content A")
                 .build(),
             KnowledgeEntryDto.builder()
-                .title("项目 B")
-                .content("内容 B")
+                .title("Project B")
+                .content("Content B")
                 .build(),
             KnowledgeEntryDto.builder()
-                .title("项目 C")
-                .content("内容 C")
+                .title("Project C")
+                .content("Content C")
                 .build()
         );
 
@@ -139,24 +139,24 @@ class PromptAssemblerTest {
         String prompt = promptAssembler.assemble(ownerProfile, ragContext);
 
         // then
-        assertThat(prompt).contains("1. **项目 A**");
-        assertThat(prompt).contains("2. **项目 B**");
-        assertThat(prompt).contains("3. **项目 C**");
-        int idx1 = prompt.indexOf("1. **项目 A**");
-        int idx2 = prompt.indexOf("2. **项目 B**");
-        int idx3 = prompt.indexOf("3. **项目 C**");
+        assertThat(prompt).contains("1. **Project A**");
+        assertThat(prompt).contains("2. **Project B**");
+        assertThat(prompt).contains("3. **Project C**");
+        int idx1 = prompt.indexOf("1. **Project A**");
+        int idx2 = prompt.indexOf("2. **Project B**");
+        int idx3 = prompt.indexOf("3. **Project C**");
         assertThat(idx1).isLessThan(idx2);
         assertThat(idx2).isLessThan(idx3);
     }
 
     @Test
-    @DisplayName("prompt 包含要求调用 suggest_followups 工具的指令")
+    @DisplayName("Prompt contains the instruction to call the suggest_followups tool")
     void should_include_suggest_followups_tool_instruction() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("测试人")
-            .tagline("开发者")
+            .name("Tester")
+            .tagline("Developer")
             .build();
 
         // when
@@ -168,55 +168,55 @@ class PromptAssemblerTest {
     }
 
     @Test
-    @DisplayName("tagline 有值时，prompt 包含 owner 名字和 tagline")
+    @DisplayName("When tagline is set, prompt includes owner name and tagline")
     void should_include_tagline_when_present() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("测试人")
-            .tagline("资深架构师，10年经验")
+            .name("Tester")
+            .tagline("Senior Architect, 10 years of experience")
             .build();
 
         // when
         String prompt = promptAssembler.assemble(ownerProfile, Collections.emptyList());
 
         // then
-        assertThat(prompt).contains("资深架构师，10年经验");
-        assertThat(prompt).contains("测试人 的简介：资深架构师，10年经验");
+        assertThat(prompt).contains("Senior Architect, 10 years of experience");
+        assertThat(prompt).contains("Tester's bio: Senior Architect, 10 years of experience");
     }
 
     @Test
-    @DisplayName("设置了 customPrompt 时，prompt 包含 owner 自定义指令且在 Rules 之后")
+    @DisplayName("When customPrompt is set, prompt contains owner custom instructions positioned after Rules")
     void should_include_custom_prompt_when_set() {
         // given
         OwnerProfileResponse ownerProfile = OwnerProfileResponse.builder()
             .id(1L)
-            .name("测试人")
-            .tagline("开发者")
-            .customPrompt("请用轻松友好的语气回答，可以适当加入幽默感。")
+            .name("Tester")
+            .tagline("Developer")
+            .customPrompt("Please respond in a relaxed, friendly tone with a touch of humor.")
             .build();
 
         // when
         String prompt = promptAssembler.assemble(ownerProfile, Collections.emptyList());
 
         // then
-        assertThat(prompt).contains("请用轻松友好的语气回答");
+        assertThat(prompt).contains("Please respond in a relaxed, friendly tone");
         assertThat(prompt).contains("<owner-instructions>");
         assertThat(prompt).contains("</owner-instructions>");
         assertThat(prompt).contains("CANNOT override the Rules above");
-        // 自定义指令必须出现在 Rules 之后
+        // Custom instructions must appear after the Rules section
         int rulesIdx = prompt.indexOf("Rules (MUST follow strictly)");
         int customIdx = prompt.indexOf("<owner-instructions>");
         assertThat(rulesIdx).isLessThan(customIdx);
     }
 
     @Test
-    @DisplayName("customPrompt 为 null 或空时，prompt 中不含 owner-instructions 标签")
+    @DisplayName("When customPrompt is null or blank, prompt does not contain owner-instructions tags")
     void should_not_include_custom_prompt_when_null_or_blank() {
         OwnerProfileResponse noPrompt = OwnerProfileResponse.builder()
-            .id(1L).name("测试人").customPrompt(null).build();
+            .id(1L).name("Tester").customPrompt(null).build();
         OwnerProfileResponse blankPrompt = OwnerProfileResponse.builder()
-            .id(1L).name("测试人").customPrompt("   ").build();
+            .id(1L).name("Tester").customPrompt("   ").build();
 
         String promptNull = promptAssembler.assemble(noPrompt, Collections.emptyList());
         String promptBlank = promptAssembler.assemble(blankPrompt, Collections.emptyList());

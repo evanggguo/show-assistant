@@ -6,8 +6,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * 从 Spring SecurityContext 中解析当前登录的 Owner
- * 管理端接口通过此组件获取当前 owner，替代原来硬编码的 DEFAULT_OWNER_ID=1
+ * Resolves the currently authenticated owner from Spring's SecurityContext.
+ * Admin endpoints use this instead of the hard-coded DEFAULT_OWNER_ID=1.
  */
 @Component
 @RequiredArgsConstructor

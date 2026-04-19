@@ -16,9 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * JWT 请求过滤器 — 从 Authorization: Bearer <token> 提取并验证 JWT
- */
+/** JWT request filter — extracts and validates a JWT from the Authorization: Bearer header. */
 @Slf4j
 @Component
 @RequiredArgsConstructor

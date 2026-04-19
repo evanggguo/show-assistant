@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * TDD 6.4 — Owner API 控制器
- * 提供 Owner 简介和初始提示词的查询接口
+ * TDD 6.4 — Owner API controller
+ * Provides endpoints to query owner profile and initial prompt suggestions
  */
 @RestController
 @RequestMapping("/api")
@@ -22,7 +22,7 @@ public class OwnerController {
 
     /**
      * TDD 6.4.1 — GET /api/owner/profile
-     * 获取展示者的公开简介信息（name、tagline、avatarUrl、contact）
+     * Get the public profile of the owner (name, tagline, avatarUrl, contact)
      */
     @GetMapping("/owner/profile")
     public ApiResponse<OwnerProfileResponse> getOwnerProfile() {
@@ -31,7 +31,7 @@ public class OwnerController {
 
     /**
      * TDD 6.4.2 — GET /api/suggestions/initial
-     * 获取 Owner 预设的初始引导提示词列表，供访客选择作为对话起点
+     * Get the owner's preset initial prompt suggestions for visitors to select as conversation starters
      */
     @GetMapping("/suggestions/initial")
     public ApiResponse<List<String>> getInitialSuggestions() {

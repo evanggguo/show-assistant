@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * 超级管理页 /admin-panel
- * 写死密码校验（superadmin888），用于添加和删除 Owner 账号
- * Owner 账号可以登录 /admin 管理台，初始密码均为 888888
+ * Super Admin page /admin-panel.
+ * Uses a hardcoded password (superadmin888) to add and delete Owner accounts.
+ * Owner accounts can log in to the /admin console; default password is 888888.
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -23,7 +23,7 @@ export default function AdminPanelPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 添加表单
+  // Add form
   const [showForm, setShowForm] = useState(false)
   const [newUsername, setNewUsername] = useState('')
   const [creating, setCreating] = useState(false)
@@ -90,7 +90,7 @@ export default function AdminPanelPage() {
     }
   }
 
-  // ── 密码验证页 ───────────────────────────────────────────────────
+  // ── Password verification page ────────────────────────────────────
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -139,11 +139,11 @@ export default function AdminPanelPage() {
     )
   }
 
-  // ── 管理界面 ──────────────────────────────────────────────────────
+  // ── Management interface ───────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* 标题 */}
+        {/* Title */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
             <ShieldAlert className="w-5 h-5 text-red-500" />
@@ -158,7 +158,7 @@ export default function AdminPanelPage() {
           <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
         )}
 
-        {/* 添加表单 */}
+        {/* Add form */}
         {showForm ? (
           <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
             <p className="text-sm font-medium text-gray-700">Add Owner Account</p>
@@ -206,7 +206,7 @@ export default function AdminPanelPage() {
           </button>
         )}
 
-        {/* Owner 列表 */}
+        {/* Owner list */}
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="w-6 h-6 animate-spin text-gray-400" />

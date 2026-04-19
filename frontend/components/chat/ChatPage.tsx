@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * ChatPage — 主对话容器
- * 对应 TDD 4.3 前端主页面逻辑
+ * ChatPage — Main conversation container.
+ * Corresponds to TDD 4.3 frontend main page logic.
  *
- * 职责：
- * 1. 挂载时请求 /api/owner/profile 和 /api/suggestions/initial
- * 2. 管理首屏（无消息）vs 对话中两种视图
- * 3. 协调 useChatStream、MessageList、ChatInput、SuggestionCards
- * 4. 错误提示展示
+ * Responsibilities:
+ * 1. Fetch /api/owner/profile and /api/suggestions/initial on mount
+ * 2. Manage home screen (no messages) vs. active conversation views
+ * 3. Coordinate useChatStream, MessageList, ChatInput, and SuggestionCards
+ * 4. Display error alerts
  */
 
 import React, { useEffect, useState, useCallback } from 'react'
@@ -21,7 +21,7 @@ import MessageList from './MessageList'
 import SuggestionCards from './SuggestionCards'
 import ChatInput from './ChatInput'
 
-/** 后端不可用时的降级初始提示词 */
+/** Fallback initial suggestions when the backend is unavailable */
 const FALLBACK_SUGGESTIONS = [
   'What are your areas of expertise?',
   'Tell me about yourself',
@@ -29,7 +29,7 @@ const FALLBACK_SUGGESTIONS = [
   'Any recent projects you\'d like to share?',
 ]
 
-/** 后端不可用时的降级 Owner 简介 */
+/** Fallback owner profile when the backend is unavailable */
 const FALLBACK_PROFILE: OwnerProfileType = {
   name: 'Dossier',
   tagline: 'Welcome',
@@ -45,7 +45,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
     useState<string[]>(FALLBACK_SUGGESTIONS)
   const [profileLoading, setProfileLoading] = useState(true)
 
-  // ── 获取 Owner 简介和初始提示词 ────────────────────────────
+  // ── Fetch owner profile and initial suggestions ───────────
   useEffect(() => {
     let cancelled = false
 
@@ -75,7 +75,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
     }
   }, [ownerUsername])
 
-  // ── 流式对话 Hook ──────────────────────────────────────────
+  // ── Streaming chat hook ───────────────────────────────────
   const {
     messages,
     streamingText,
@@ -87,9 +87,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
     clearError,
   } = useChatStream(ownerUsername, initialSuggestions)
 
-  /**
-   * 点击提示词卡片：直接发送该文本
-   */
+  /** Clicking a suggestion card sends its text as a message */
   const handleSuggestionSelect = useCallback(
     (text: string) => {
       sendMessage(text)
@@ -97,22 +95,22 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
     [sendMessage]
   )
 
-  // 是否处于首屏（无消息且未在流式中）
+  // Home screen: no messages and not currently streaming
   const isHomePage = messages.length === 0 && !isStreaming
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* ── 顶部 Owner 简介（对话中显示 compact 模式） ─────── */}
+      {/* ── Owner profile bar (compact mode during conversation) ── */}
       {!isHomePage && !profileLoading && (
         <OwnerProfile profile={ownerProfile} variant="compact" />
       )}
 
-      {/* ── 主内容区 ────────────────────────────────────────── */}
+      {/* ── Main content area ───────────────────────────────── */}
       {isHomePage ? (
-        // 首屏：居中展示欢迎内容
+        // Home screen: centered welcome content
         <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto">
           <div className="w-full max-w-[800px] flex flex-col items-center gap-6">
-            {/* Owner 大头像 */}
+            {/* Owner hero avatar */}
             {!profileLoading && (
               <OwnerProfile profile={ownerProfile} variant="hero" />
             )}
@@ -120,7 +118,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
               <div className="w-20 h-20 rounded-full bg-gray-200 animate-pulse" />
             )}
 
-            {/* 欢迎语 */}
+            {/* Welcome message */}
             <div className="text-center">
               <h2 className="text-xl font-medium text-gray-700">
                 How can I help you?
@@ -130,7 +128,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
               </p>
             </div>
 
-            {/* 初始提示词卡片 */}
+            {/* Initial suggestion cards */}
             <div className="w-full">
               <SuggestionCards
                 suggestions={initialSuggestions}
@@ -141,7 +139,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
           </div>
         </div>
       ) : (
-        // 对话中：消息列表
+        // Active conversation: message list
         <MessageList
           messages={messages}
           streamingText={streamingText}
@@ -150,7 +148,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
         />
       )}
 
-      {/* ── 错误提示 ─────────────────────────────────────────── */}
+      {/* ── Error alert ─────────────────────────────────────── */}
       {error && (
         <div className="px-4 py-2 max-w-[800px] mx-auto w-full">
           <ErrorAlert
@@ -161,7 +159,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
         </div>
       )}
 
-      {/* ── 底部输入框 ────────────────────────────────────────── */}
+      {/* ── Bottom input bar ────────────────────────────────── */}
       <ChatInput
         onSend={sendMessage}
         disabled={isStreaming}

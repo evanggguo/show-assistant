@@ -11,6 +11,6 @@ public class ChangePasswordRequest {
     private String oldPassword;
 
     @NotBlank
-    @Size(min = 6, message = "新密码不能少于 6 位")
+    @Size(min = 6, message = "New password must be at least 6 characters")
     private String newPassword;
 }

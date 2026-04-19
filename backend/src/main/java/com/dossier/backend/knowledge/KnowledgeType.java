@@ -1,16 +1,16 @@
 package com.dossier.backend.knowledge;
 
 /**
- * TDD 5.1 — 知识条目类型枚举
- * 定义知识库中条目的分类
+ * TDD 5.1 — Knowledge entry type enum
+ * Defines the classification of entries in the knowledge base
  */
 public enum KnowledgeType {
-    /** 纯文本内容 */
+    /** Plain text content */
     TEXT,
-    /** FAQ 问答对 */
+    /** FAQ question-answer pair */
     FAQ,
-    /** 从文档中提取的内容 */
+    /** Content extracted from a document */
     DOCUMENT_CHUNK,
-    /** 结构化数据 */
+    /** Structured data */
     STRUCTURED
 }

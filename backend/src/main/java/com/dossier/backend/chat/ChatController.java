@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * TDD 4.1 — 流式对话 API 控制器
- * 提供基于 SSE（Server-Sent Events）的流式对话接口，
- * 支持游客（无 conversationId）和登录用户两种模式。
+ * TDD 4.1 — Streaming chat API controller
+ * Provides an SSE (Server-Sent Events) streaming chat endpoint.
+ * Supports both guest mode (no conversationId) and authenticated users.
  */
 @Slf4j
 @RestController
@@ -26,16 +26,13 @@ public class ChatController {
 
     /**
      * TDD 4.1 — POST /api/chat/stream
-     * 流式对话入口。创建 SseEmitter 并立即返回给客户端（HTTP 200），
-     * 同时在异步线程中执行 AI 推理和 SSE 事件推送。
+     * Streaming chat entry point. Creates a SseEmitter and returns it immediately (HTTP 200)
+     * while AI inference and SSE event pushing run in an async thread.
      *
-     * SSE 事件格式（TDD 4.1）：
+     * SSE event format (TDD 4.1):
      * - event: token  data: {"text": "..."}
      * - event: done   data: {"messageId": 123, "suggestions": ["...", "..."]}
      * - event: error  data: {"code": "...", "message": "..."}
-     *
-     * @param req 聊天请求（conversationId 可为 null 表示游客新会话）
-     * @return SseEmitter，建立 SSE 长连接
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@Valid @RequestBody ChatRequest req) {

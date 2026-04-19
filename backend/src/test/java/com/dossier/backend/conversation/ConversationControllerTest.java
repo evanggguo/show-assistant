@@ -16,11 +16,11 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * ConversationController 单元测试
- * 验证控制器对会话查询的处理，包括正常返回和资源不存在场景
+ * Unit tests for ConversationController.
+ * Verifies controller handling of conversation retrieval, including normal and not-found scenarios.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ConversationController 单元测试")
+@DisplayName("ConversationController Unit Tests")
 class ConversationControllerTest {
 
     @Mock
@@ -30,7 +30,7 @@ class ConversationControllerTest {
     private ConversationController conversationController;
 
     @Test
-    @DisplayName("GET /api/conversations/{id}：正常返回 ConversationResponse")
+    @DisplayName("GET /api/conversations/{id}: returns ConversationResponse correctly")
     void should_return_conversation_response_when_found() {
         // given
         ConversationResponse response = ConversationResponse.builder()
@@ -52,7 +52,7 @@ class ConversationControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/conversations/{id}：会话不存在时抛出 ResourceNotFoundException（由全局异常处理器处理为 404）")
+    @DisplayName("GET /api/conversations/{id}: throws ResourceNotFoundException when conversation is not found (handled as 404 by global exception handler)")
     void should_throw_when_conversation_not_found() {
         // given
         when(conversationService.getConversation(999L))

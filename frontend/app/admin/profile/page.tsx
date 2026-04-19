@@ -19,13 +19,13 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 修改用户名
+  // Change username
   const [newUsername, setNewUsername] = useState('')
   const [usernameError, setUsernameError] = useState('')
   const [usernameSaving, setUsernameSaving] = useState(false)
   const [usernameSaved, setUsernameSaved] = useState(false)
 
-  // 修改密码
+  // Change password
   const [oldPw, setOldPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
@@ -49,7 +49,7 @@ export default function ProfilePage() {
 
   useEffect(() => { loadData() }, [])
 
-  // ── 保存 Owner 信息 ───────────────────────────────────────────────
+  // ── Save owner profile ────────────────────────────────────────────
   const handleSave = async () => {
     if (!profile) return
     setSaving(true)
@@ -71,7 +71,7 @@ export default function ProfilePage() {
     }
   }
 
-  // ── 修改用户名 ────────────────────────────────────────────────────
+  // ── Change username ───────────────────────────────────────────────
   const handleChangeUsername = async () => {
     if (!newUsername.trim()) { setUsernameError('Username is required'); return }
     if (!/^[a-zA-Z0-9]+$/.test(newUsername)) { setUsernameError('Only letters and numbers are allowed'); return }
@@ -89,7 +89,7 @@ export default function ProfilePage() {
     }
   }
 
-  // ── 修改密码 ──────────────────────────────────────────────────────
+  // ── Change password ──────────────────────────────────────────────
   const handleChangePassword = async () => {
     if (!oldPw) { setPwError('Current password is required'); return }
     if (!newPw || newPw.length < 6) { setPwError('New password must be at least 6 characters'); return }
@@ -127,7 +127,7 @@ export default function ProfilePage() {
         <ErrorAlert message={error} onDismiss={() => setError(null)} />
       )}
 
-      {/* 基本信息表单 */}
+      {/* Basic info form */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
         <h2 className="text-sm font-medium text-gray-700">Basic Info</h2>
 
@@ -176,7 +176,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 修改用户名 */}
+      {/* Change username */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
         <h2 className="text-sm font-medium text-gray-700">Change Username</h2>
         <p className="text-xs text-gray-400">You will need to log in again with the new username after changing it.</p>
@@ -208,7 +208,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 修改密码 */}
+      {/* Change password */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
         <h2 className="text-sm font-medium text-gray-700">Change Password</h2>
 
@@ -272,7 +272,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* AI 助手自定义指令 */}
+      {/* AI assistant custom instructions */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
         <div>
           <h2 className="text-sm font-medium text-gray-700">AI Assistant Custom Instructions</h2>
@@ -312,7 +312,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* 初始提示词管理 */}
+      {/* Initial suggestions management */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <h2 className="text-sm font-medium text-gray-700 mb-4">Initial Suggestions</h2>
         <p className="text-xs text-gray-400 mb-4">Prompt cards shown on the chat home screen to help visitors start a conversation</p>

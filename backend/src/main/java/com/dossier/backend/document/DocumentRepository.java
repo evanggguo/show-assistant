@@ -6,18 +6,18 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * TDD 5.1 — Document 数据访问层
+ * TDD 5.1 — Document data access layer
  */
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     /**
-     * 查询指定 Owner 的所有文档，按创建时间倒序
+     * Query all documents for the specified owner, sorted by creation time descending
      */
     List<Document> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
 
     /**
-     * 查询待处理的文档（Phase 3 后台处理用）
+     * Query documents awaiting processing (used by Phase 3 background processor)
      */
     List<Document> findByStatus(DocumentStatus status);
 

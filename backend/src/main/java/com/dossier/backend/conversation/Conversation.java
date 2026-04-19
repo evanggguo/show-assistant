@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TDD 5.1 — Conversation 实体
- * 一次完整的对话会话，关联到一个 Owner 和可选的用户
+ * TDD 5.1 — Conversation entity
+ * A complete conversation session, associated with one Owner and an optional user
  */
 @Data
 @Builder

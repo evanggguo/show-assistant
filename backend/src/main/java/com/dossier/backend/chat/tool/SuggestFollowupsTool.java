@@ -8,15 +8,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * TDD 4.4 — 动态跟进提示词 Tool
- * 非 Spring Bean，每次请求创建独立实例，避免状态共享。
- * 模型在回复末尾调用 suggest_followups 工具，Spring AI 的 @Tool 注解自动捕获调用。
- * 调用后可通过 getCapturedSuggestions() 获取捕获到的建议列表。
+ * TDD 4.4 — Dynamic follow-up suggestions tool
+ * Not a Spring Bean; a fresh instance is created per request to avoid shared state.
+ * The model calls suggest_followups at the end of its reply; Spring AI's @Tool captures the call.
  *
- * 设计原则（TDD 4.4.1）：
- * - per-request 实例：不是 Spring Bean，由 ChatService 在每次请求时 new 出来
- * - 状态隔离：每个实例只服务一次对话，不存在并发状态竞争
- * - 工具名称与 System Prompt 中的指令一致，模型可靠调用
+ * Design principles (TDD 4.4.1):
+ * - Per-request instance: instantiated by ChatService on every request, not a singleton Bean
+ * - State isolation: each instance serves exactly one conversation, no concurrency issues
+ * - Tool name matches the instruction in the System Prompt for reliable model invocation
  */
 @Slf4j
 public class SuggestFollowupsTool {
@@ -24,12 +23,9 @@ public class SuggestFollowupsTool {
     private final List<String> capturedSuggestions = new ArrayList<>();
 
     /**
-     * TDD 4.4.2 — suggest_followups 工具方法
-     * 由 Spring AI 在模型调用工具时自动调用，将建议的跟进问题捕获到实例变量。
-     * 模型需要在 System Prompt 的指引下在回复结束时调用此工具。
-     *
-     * @param suggestions 模型建议的 2-3 个跟进问题列表
-     * @return 空字符串（工具调用结果不显示给用户）
+     * TDD 4.4.2 — suggest_followups tool method
+     * Auto-invoked by Spring AI when the model calls the tool; captures suggested follow-up questions.
+     * The model is instructed via the System Prompt to call this tool at the end of its reply.
      */
     @Tool(name = "suggest_followups",
           description = "Call this tool after completing your answer to provide 2-3 relevant follow-up questions for the user. " +
@@ -44,11 +40,8 @@ public class SuggestFollowupsTool {
     }
 
     /**
-     * TDD 4.4.3 — 获取捕获到的跟进建议
-     * 在流式回复完成后调用，获取模型提供的动态提示词。
-     * 若模型未调用工具，则返回空列表。
-     *
-     * @return 不可修改的建议列表
+     * TDD 4.4.3 — Get captured follow-up suggestions
+     * Called after streaming finishes. Returns an empty list if the model did not invoke the tool.
      */
     public List<String> getCapturedSuggestions() {
         return Collections.unmodifiableList(capturedSuggestions);

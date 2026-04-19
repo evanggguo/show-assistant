@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Spring Boot 后端 ────────────────────────────────────────────
+  # ─── Spring Boot Backend ────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -53,7 +53,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # ─── Next.js 前端 ────────────────────────────────────────────────
+  # ─── Next.js Frontend ───────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -70,7 +70,7 @@ services:
       backend:
         condition: service_healthy
 
-  # ─── Nginx 反向代理 ─────────────────────────────────────────────
+  # ─── Nginx Reverse Proxy ────────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: dossier-nginx
@@ -83,7 +83,7 @@ services:
       - frontend
       - backend
 
-  # ─── Ollama 本地模型（可选，仅在 AI_PROVIDER=ollama 时需要）────
+  # ─── Ollama Local Model (optional, only needed when AI_PROVIDER=ollama) ────
   # ollama:
   #   image: ollama/ollama:latest
   #   container_name: dossier-ollama

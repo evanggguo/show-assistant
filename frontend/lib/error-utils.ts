@@ -1,53 +1,53 @@
 /**
- * 错误信息友好化工具
- * 将技术性错误消息映射为用户友好的提示文字
+ * Error message formatter utility.
+ * Maps technical error messages to user-friendly display text.
  */
 
 export function toFriendlyMessage(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err ?? '')
 
-  // 网络/连接错误
+  // Network / connection errors
   if (
     raw.includes('Failed to fetch') ||
     raw.includes('NetworkError') ||
     raw.includes('net::ERR') ||
     raw.includes('ECONNREFUSED')
   ) {
-    return '网络连接失败，请检查网络后重试'
+    return 'Network connection failed. Please check your connection and try again.'
   }
 
-  // HTTP 状态码错误
+  // HTTP status code errors
   if (raw.includes('502') || raw.includes('Bad Gateway')) {
-    return '服务暂时不可用，请稍后重试'
+    return 'Service temporarily unavailable. Please try again later.'
   }
   if (raw.includes('503') || raw.includes('Service Unavailable')) {
-    return '服务维护中，请稍后再试'
+    return 'Service is under maintenance. Please try again later.'
   }
   if (raw.includes('500') || raw.includes('Internal Server Error')) {
-    return '服务器出现异常，请稍后重试'
+    return 'An unexpected server error occurred. Please try again later.'
   }
   if (raw.includes('504') || raw.includes('Gateway Timeout')) {
-    return '请求超时，请稍后重试'
+    return 'Request timed out. Please try again later.'
   }
-  if (raw.includes('401') || raw.includes('未授权')) {
-    return '登录已过期，请重新登录'
+  if (raw.includes('401') || raw.includes('Unauthorized')) {
+    return 'Your session has expired. Please log in again.'
   }
   if (raw.includes('403') || raw.includes('Forbidden')) {
-    return '权限不足，请联系管理员'
+    return 'Insufficient permissions. Please contact your administrator.'
   }
   if (raw.includes('404') || raw.includes('Not Found')) {
-    return '请求的资源不存在'
+    return 'The requested resource was not found.'
   }
 
-  // SSE / 流式错误
-  if (raw.includes('SSE') || raw.includes('响应体为空')) {
-    return '连接中断，请刷新页面后重试'
+  // SSE / streaming errors
+  if (raw.includes('SSE') || raw.includes('response body is empty')) {
+    return 'Connection interrupted. Please refresh the page and try again.'
   }
 
-  // 业务错误（已有友好提示，直接使用）
+  // Business errors (already user-friendly, use as-is)
   if (raw && raw.length > 0 && raw.length < 80) {
     return raw
   }
 
-  return '操作失败，请稍后重试'
+  return 'Operation failed. Please try again later.'
 }

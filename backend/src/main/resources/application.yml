@@ -4,7 +4,7 @@ server:
 spring:
   autoconfigure:
     exclude:
-      # 禁用 Ollama embedding 自动配置，使用 Google text-embedding-004 作为 EmbeddingModel
+      # Disable Ollama embedding auto-configuration; use Google text-embedding-004 as EmbeddingModel
       - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/dossier}
@@ -27,40 +27,40 @@ spring:
       max-file-size: 50MB
       max-request-size: 55MB
   ai:
-    # Ollama 本地模型配置（ai.provider=ollama 时使用）
+    # Ollama local model configuration (used when ai.provider=ollama)
     ollama:
       base-url: ${AI_OLLAMA_BASE_URL:http://localhost:11434}
       chat:
         options:
           model: ${AI_OLLAMA_MODEL:qwen2.5:7b}
-    # Claude 云端模型配置（ai.provider=claude 时使用）
+    # Claude cloud model configuration (used when ai.provider=claude)
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:placeholder}
       chat:
         options:
           model: claude-sonnet-4-6
           max-tokens: 2048
-    # Google AI Studio（Gemini）云端模型配置（ai.provider=google 时使用）
+    # Google AI Studio (Gemini) cloud model configuration (used when ai.provider=google)
     google:
       genai:
         api-key: ${GOOGLE_AI_API_KEY:placeholder}
         chat:
           options:
             model: ${GOOGLE_AI_MODEL:gemini-2.5-flash-lite}
-        # Google text-embedding-004 向量嵌入（768 维）
+        # Google text-embedding-004 vector embedding (768 dimensions)
         embedding:
           options:
             model: gemini-embedding-001
     model:
       embedding:
-        text: google-genai  # 显式启用 Google text-embedding-004
+        text: google-genai  # explicitly enable Google text-embedding-004
 
-# TDD 4.5.4 — AI 提供商切换配置
-# ai.provider=ollama（默认）：始终调用本地 Ollama，ai.mock 对此无效
-# ai.provider=claude + ai.mock=false：调用 Claude API（需设置 ANTHROPIC_API_KEY）
-# ai.provider=claude + ai.mock=true（默认）：返回模拟数据，无需 API Key
-# ai.provider=google + ai.mock=false：调用 Google AI Studio Gemini（需设置 GOOGLE_AI_API_KEY）
-# ai.provider=google + ai.mock=true（默认）：返回模拟数据，无需 API Key
+# TDD 4.5.4 — AI provider switching configuration
+# ai.provider=ollama: always calls local Ollama; ai.mock has no effect
+# ai.provider=claude + ai.mock=false: calls Claude API (requires ANTHROPIC_API_KEY)
+# ai.provider=claude + ai.mock=true (default): returns mock data, no API key needed
+# ai.provider=google + ai.mock=false: calls Google AI Studio Gemini (requires GOOGLE_AI_API_KEY)
+# ai.provider=google + ai.mock=true (default): returns mock data, no API key needed
 ai:
   mock: ${AI_MOCK:false}
   provider: ${AI_PROVIDER:google}
@@ -68,14 +68,14 @@ ai:
 app:
   sse:
     timeout-ms: 180000
-  # 管理端 JWT 认证
+  # Admin console JWT authentication
   jwt:
     secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBKV1QgdGVzdGluZw==}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
-  # 超级管理密码（用于 /api/super-admin/** 接口，管理 owner 账号）
+  # Super-admin password (used for /api/super-admin/** endpoints to manage owner accounts)
   super-admin:
     password: ${SUPER_ADMIN_PASSWORD:superadmin888}
-  # 文件上传存储路径
+  # File upload storage path
   storage:
     upload-dir: ${UPLOAD_DIR:./uploads}
 

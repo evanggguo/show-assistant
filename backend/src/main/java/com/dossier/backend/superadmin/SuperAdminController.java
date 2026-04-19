@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 超级管理接口 — owner 账号增删
- * 通过请求头 X-Super-Admin-Token 校验写死密码，无需 JWT
+ * Super-admin API — owner account create/delete.
+ * Validated via a fixed X-Super-Admin-Token request header; no JWT required.
  */
 @RestController
 @RequestMapping("/api/super-admin")
@@ -53,7 +53,7 @@ public class SuperAdminController {
 
     private void verifyToken(String token) {
         if (!superAdminPassword.equals(token)) {
-            throw new BusinessException("FORBIDDEN", "超级管理密码错误");
+            throw new BusinessException("FORBIDDEN", "Invalid super-admin token");
         }
     }
 }

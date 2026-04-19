@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TDD 5.1 — Message 实体
- * 对话中的单条消息，角色为 user、assistant 或 system
+ * TDD 5.1 — Message entity
+ * A single message in a conversation; role is user, assistant, or system
  */
 @Data
 @Builder

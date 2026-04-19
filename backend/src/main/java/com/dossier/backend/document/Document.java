@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 import java.time.OffsetDateTime;
 
 /**
- * TDD 5.1 — Document 实体
- * 用户上传的原始文档，Phase 3 中将被解析为 KnowledgeEntry 条目
+ * TDD 5.1 — Document entity
+ * Raw document uploaded by the user; parsed into KnowledgeEntry records in Phase 3
  */
 @Data
 @Builder

@@ -8,6 +8,6 @@ import lombok.Data;
 public class ChangeUsernameRequest {
 
     @NotBlank
-    @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "用户名只能包含英文字母和数字")
+    @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "Username may only contain letters and digits")
     private String newUsername;
 }

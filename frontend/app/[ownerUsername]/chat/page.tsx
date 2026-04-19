@@ -1,6 +1,6 @@
 /**
- * /{ownerUsername}/chat — 客户端对话页面
- * 通过 URL 中的 ownerUsername 识别展示者，实现多 owner 数据隔离
+ * /{ownerUsername}/chat — Client-facing chat page
+ * Identifies the owner via the URL ownerUsername param; provides multi-owner data isolation
  */
 
 import ChatPage from '@/components/chat/ChatPage'

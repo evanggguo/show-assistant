@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 管理端知识库 CRUD 接口
+ * Admin CRUD endpoints for the knowledge base
  */
 @RestController
 @RequestMapping("/api/admin/knowledge")

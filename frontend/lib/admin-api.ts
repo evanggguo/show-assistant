@@ -1,6 +1,6 @@
 /**
- * 管理端 API 请求封装
- * 所有请求自动携带 JWT Bearer Token，401 时清除 token 并跳转登录
+ * Admin console API request wrappers.
+ * All requests automatically include a JWT Bearer Token; on 401, the token is cleared and the user is redirected to login.
  */
 
 import type {
@@ -55,7 +55,7 @@ async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T
   return body.data as T
 }
 
-// ── 认证 ──────────────────────────────────────────────────────────
+// ── Authentication ────────────────────────────────────────────────
 
 export async function adminLogin(
   username: string,
@@ -71,7 +71,7 @@ export async function adminLogin(
   return body.data
 }
 
-// ── Owner 信息 ────────────────────────────────────────────────────
+// ── Owner Profile ────────────────────────────────────────────────
 
 export const fetchAdminProfile = (): Promise<OwnerProfileData> =>
   adminFetch<OwnerProfileData>('/api/admin/owner/profile')
@@ -82,7 +82,7 @@ export const updateAdminProfile = (data: UpdateOwnerData): Promise<OwnerProfileD
     body: JSON.stringify(data),
   })
 
-// ── 提示词 ────────────────────────────────────────────────────────
+// ── Prompt Suggestions ───────────────────────────────────────────
 
 export const fetchSuggestions = (): Promise<SuggestionData[]> =>
   adminFetch<SuggestionData[]>('/api/admin/suggestions')
@@ -102,7 +102,7 @@ export const updateSuggestion = (id: number, data: UpdateSuggestionData): Promis
 export const deleteSuggestion = (id: number): Promise<void> =>
   adminFetch<void>(`/api/admin/suggestions/${id}`, { method: 'DELETE' })
 
-// ── 知识库 ────────────────────────────────────────────────────────
+// ── Knowledge Base ───────────────────────────────────────────────
 
 export const fetchKnowledge = (): Promise<KnowledgeData[]> =>
   adminFetch<KnowledgeData[]>('/api/admin/knowledge')
@@ -122,7 +122,7 @@ export const updateKnowledge = (id: number, data: UpdateKnowledgeData): Promise<
 export const deleteKnowledge = (id: number): Promise<void> =>
   adminFetch<void>(`/api/admin/knowledge/${id}`, { method: 'DELETE' })
 
-// ── Owner 账号管理（修改用户名/密码） ──────────────────────────────
+// ── Owner Account Management (change username/password) ──────────
 
 export const changeUsername = (newUsername: string): Promise<void> =>
   adminFetch<void>('/api/admin/owner/username', {
@@ -136,7 +136,7 @@ export const changePassword = (oldPassword: string, newPassword: string): Promis
     body: JSON.stringify({ oldPassword, newPassword }),
   })
 
-// ── 超级管理（owner 账号增删，使用写死密码头） ──────────────────────
+// ── Super Admin (owner account creation/deletion, uses hardcoded password header) ─
 
 const SUPER_ADMIN_PASSWORD = 'superadmin888'
 
@@ -169,7 +169,7 @@ export const createOwner = (username: string): Promise<OwnerSummaryData> =>
 export const deleteOwner = (id: number): Promise<void> =>
   superAdminFetch<void>(`/api/super-admin/owners/${id}`, { method: 'DELETE' })
 
-// ── 文档管理 ──────────────────────────────────────────────────────
+// ── Document Management ───────────────────────────────────────────
 
 export const fetchDocuments = (): Promise<DocumentData[]> =>
   adminFetch<DocumentData[]>('/api/admin/documents')

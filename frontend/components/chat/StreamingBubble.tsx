@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * StreamingBubble — 流式输出中的 AI 气泡
- * 对应 TDD 4.3 流式渲染
+ * StreamingBubble — AI bubble shown during streaming output.
+ * Corresponds to TDD 4.3 streaming rendering.
  *
- * 特性：
- * - 末尾显示光标 ▍（CSS animate-pulse 闪烁）
- * - 使用 react-markdown 边流边渲染 Markdown
+ * Features:
+ * - Blinking cursor ▍ at the end (CSS animate-pulse)
+ * - Renders Markdown incrementally using react-markdown
  */
 
 import React from 'react'
@@ -19,11 +19,11 @@ interface StreamingBubbleProps {
 export default function StreamingBubble({ text }: StreamingBubbleProps) {
   return (
     <div className="mb-6">
-      {/* AI 回答：全宽展示，无气泡边框 */}
+      {/* AI response: full width, no bubble border */}
       <div className="prose prose-sm max-w-none text-gray-800">
         <ReactMarkdown>{text || ''}</ReactMarkdown>
       </div>
-      {/* 光标闪烁动画 */}
+      {/* Blinking cursor animation */}
       <span
         className="inline-block w-[2px] h-4 bg-gray-600 ml-0.5 align-middle animate-pulse"
         aria-hidden="true"

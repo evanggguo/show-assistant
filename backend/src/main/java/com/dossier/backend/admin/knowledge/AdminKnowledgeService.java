@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * 管理端知识库服务 — 委托 KnowledgeService，使用当前登录 owner
- */
+/** Admin knowledge service — delegates to KnowledgeService using the current authenticated owner. */
 @Service
 @RequiredArgsConstructor
 public class AdminKnowledgeService {

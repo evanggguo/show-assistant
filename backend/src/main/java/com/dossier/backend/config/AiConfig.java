@@ -14,27 +14,23 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * TDD 4.5.4 — AI 提供商配置
- * 根据 application.yml 中的 ai.provider 和 ai.mock 条件，
- * 注册唯一的 AiChatProvider Bean。
+ * TDD 4.5.4 — AI provider configuration
+ * Registers exactly one AiChatProvider Bean based on ai.provider and ai.mock in application.yml.
  *
- * 切换规则：
- *   ai.provider=ollama（默认）              → OllamaChatProvider（本地真实调用，忽略 ai.mock）
- *   ai.provider=claude, ai.mock=false       → ClaudeChatProvider（需要 ANTHROPIC_API_KEY）
- *   ai.provider=claude, ai.mock=true（默认）→ MockChatProvider（无需 API Key）
- *   ai.provider=google, ai.mock=false       → GoogleChatProvider（需要 GOOGLE_AI_API_KEY）
- *   ai.provider=google, ai.mock=true（默认）→ MockChatProvider（无需 API Key）
+ * Switch rules:
+ *   ai.provider=ollama (default)            → OllamaChatProvider (local real call, ai.mock ignored)
+ *   ai.provider=claude, ai.mock=false       → ClaudeChatProvider (requires ANTHROPIC_API_KEY)
+ *   ai.provider=claude, ai.mock=true (default) → MockChatProvider (no API key needed)
+ *   ai.provider=google, ai.mock=false       → GoogleChatProvider (requires GOOGLE_AI_API_KEY)
+ *   ai.provider=google, ai.mock=true (default) → MockChatProvider (no API key needed)
  *
- * 设计原则：本地物理模型（Ollama）始终真实调用，mock 开关仅对云端提供商生效。
+ * Design: local models (Ollama) always make real calls; the mock flag only affects cloud providers.
  */
 @Slf4j
 @Configuration
 public class AiConfig {
 
-    /**
-     * Ollama 本地模型提供商（默认激活）
-     * ai.provider=ollama 时注册，忽略 ai.mock——本地模型始终真实调用。
-     */
+    /** Ollama local model provider (active by default). Registered when ai.provider=ollama; ai.mock is ignored. */
     @Bean
     @ConditionalOnProperty(name = "ai.provider", havingValue = "ollama", matchIfMissing = true)
     public AiChatProvider ollamaAiChatProvider(OllamaChatModel chatModel) {
@@ -42,18 +38,12 @@ public class AiConfig {
         return new OllamaChatProvider(chatModel);
     }
 
-    /**
-     * Claude 云端模型提供商配置（ai.provider=claude 时激活）
-     */
+    /** Claude cloud provider configuration (active when ai.provider=claude). */
     @Configuration
     @ConditionalOnProperty(name = "ai.provider", havingValue = "claude")
     static class ClaudeProviderConfig {
 
-        /**
-         * 真实 Claude 提供商
-         * ai.provider=claude, ai.mock=false 时激活
-         * 需要环境变量 ANTHROPIC_API_KEY
-         */
+        /** Real Claude provider. Active when ai.provider=claude and ai.mock=false. Requires ANTHROPIC_API_KEY. */
         @Bean
         @ConditionalOnProperty(name = "ai.mock", havingValue = "false")
         public AiChatProvider claudeAiChatProvider(AnthropicChatModel chatModel) {
@@ -61,10 +51,7 @@ public class AiConfig {
             return new ClaudeChatProvider(chatModel);
         }
 
-        /**
-         * Mock 提供商（cloud fallback）
-         * ai.provider=claude, ai.mock=true（默认）时激活，无需 API Key。
-         */
+        /** Mock provider (cloud fallback). Active when ai.provider=claude and ai.mock=true (default). No API key required. */
         @Bean
         @ConditionalOnProperty(name = "ai.mock", havingValue = "true", matchIfMissing = true)
         public AiChatProvider mockAiChatProvider() {
@@ -73,18 +60,12 @@ public class AiConfig {
         }
     }
 
-    /**
-     * Google Generative AI（Gemini）云端模型提供商配置（ai.provider=google 时激活）
-     */
+    /** Google Generative AI (Gemini) cloud provider configuration (active when ai.provider=google). */
     @Configuration
     @ConditionalOnProperty(name = "ai.provider", havingValue = "google")
     static class GoogleProviderConfig {
 
-        /**
-         * 真实 Google AI Studio（Gemini）提供商
-         * ai.provider=google, ai.mock=false 时激活
-         * 需要环境变量 GOOGLE_AI_API_KEY（Google AI Studio API Key）
-         */
+        /** Real Google AI Studio (Gemini) provider. Active when ai.provider=google and ai.mock=false. Requires GOOGLE_AI_API_KEY. */
         @Bean
         @ConditionalOnProperty(name = "ai.mock", havingValue = "false")
         public AiChatProvider googleAiChatProvider(GoogleGenAiChatModel chatModel) {
@@ -92,10 +73,7 @@ public class AiConfig {
             return new GoogleChatProvider(chatModel);
         }
 
-        /**
-         * Mock 提供商（cloud fallback）
-         * ai.provider=google, ai.mock=true（默认）时激活，无需 API Key。
-         */
+        /** Mock provider (cloud fallback). Active when ai.provider=google and ai.mock=true (default). No API key required. */
         @Bean
         @ConditionalOnProperty(name = "ai.mock", havingValue = "true", matchIfMissing = true)
         public AiChatProvider googleMockAiChatProvider() {
