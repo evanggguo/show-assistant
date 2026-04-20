@@ -61,11 +61,12 @@ AI_PROVIDER=ollama docker compose up -d
 | `DB_PASSWORD` | `postgres` | PostgreSQL password |
 | `AI_PROVIDER` | `google` | AI provider: `google` / `claude` / `ollama` |
 | `AI_MOCK` | `false` | Mock mode toggle for cloud providers (ignored when `AI_PROVIDER=ollama`) |
-| `GOOGLE_AI_API_KEY` | `placeholder` | Google AI Studio API key |
-| `GOOGLE_AI_MODEL` | `gemini-2.0-flash` | Google Gemini model name |
+| `GOOGLE_AI_API_KEY` | `placeholder` | Google AI Studio API key (not required on GCP) |
+| `GOOGLE_AI_MODEL` | `gemini-2.5-flash-lite` | Google / Vertex AI Gemini model name |
 | `ANTHROPIC_API_KEY` | `placeholder` | Claude API key |
 | `AI_OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama service URL (optional) |
 | `AI_OLLAMA_MODEL` | `qwen2.5:1.5b` | Ollama model name (optional) |
+| `VERTEX_AI_LOCATION` | `us-central1` | Vertex AI API region (GCP deployments only) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | CORS allowed origins |
 
 ## Project Structure
@@ -122,7 +123,8 @@ dossier/
 The backend uses the Spring AI abstraction layer with runtime provider switching:
 
 - **Mock mode** (`AI_MOCK=true`): Returns fixed mock data with no external dependencies — ideal for development and debugging.
-- **Google Gemini** (default): Calls the Google AI Studio API; requires `GOOGLE_AI_API_KEY`. Use `AI_MOCK=true` to skip actual calls.
+- **Google Gemini** (default, non-GCP): Calls the Google AI Studio API; requires `GOOGLE_AI_API_KEY`. Use `AI_MOCK=true` to skip actual calls.
+- **Vertex AI Gemini** (auto on GCP): When deployed to Cloud Run, GKE, or GCE, the backend automatically switches to Vertex AI and uses Application Default Credentials (ADC) — no `GOOGLE_AI_API_KEY` needed. Keep `AI_PROVIDER=google` (the default); switching is transparent.
 - **Claude**: Calls the Anthropic API; requires `AI_PROVIDER=claude` and `ANTHROPIC_API_KEY`. Use `AI_MOCK=true` to skip actual calls.
 - **Ollama** (optional): Calls a local model; requires `AI_PROVIDER=ollama`. `AI_MOCK` has no effect on this provider — requests are always real.
 

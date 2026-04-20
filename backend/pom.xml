@@ -90,10 +90,16 @@
             <artifactId>spring-ai-starter-model-anthropic</artifactId>
         </dependency>
 
-        <!-- Spring AI Google GenAI（Google AI Studio / Gemini 云端模型） -->
+        <!-- Spring AI Google GenAI (Google AI Studio / Gemini cloud model) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-google-genai</artifactId>
+        </dependency>
+
+        <!-- Spring AI Vertex AI Gemini (GCP cloud model, auto-activated on GCP via ADC) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-vertex-ai-gemini</artifactId>
         </dependency>
 
         <!-- PostgreSQL Driver -->
