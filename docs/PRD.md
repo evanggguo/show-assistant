@@ -285,12 +285,14 @@ Click "Suggestion Config" in the left nav
 
 | Provider | Description | Status |
 |----------|-------------|--------|
-| Google Gemini | Cloud model (gemini-2.0-flash); requires `GOOGLE_AI_API_KEY` | ✅ Default provider |
+| Google Gemini | Cloud model; requires `GOOGLE_AI_API_KEY`; used on non-GCP environments | ✅ Default provider |
+| Vertex AI Gemini | GCP cloud model; uses Application Default Credentials (ADC); auto-activated on Cloud Run / GKE / GCE | ✅ Auto on GCP |
 | Claude (Anthropic) | High-quality cloud model; requires `ANTHROPIC_API_KEY` | ✅ Integrated |
 | Mock | Local simulation; no API key needed; ideal for development/debugging | ✅ Default dev mode |
 | Ollama (local model) | Runs on local machine or intranet; no API key; data stays on-premise | ✅ Optional, non-default |
 
 - Configuration: set `ai.provider: google / claude / ollama` in `application.yml`; cloud providers support mock mode via `ai.mock: true`
+- When `ai.provider=google` and the backend is deployed on GCP (Cloud Run, GKE, GCE, App Engine), Vertex AI is activated automatically via ADC — no `GOOGLE_AI_API_KEY` is needed. On non-GCP environments, Google AI Studio is used as before.
 
 ---
 

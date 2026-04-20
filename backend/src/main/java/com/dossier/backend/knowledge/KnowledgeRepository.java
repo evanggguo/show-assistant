@@ -35,6 +35,18 @@ public interface KnowledgeRepository extends JpaRepository<KnowledgeEntry, Long>
         @Param("limit") int limit
     );
 
+    /** Full-text keyword search for entries containing the query text. */
+    @Query(value = """
+        SELECT * FROM knowledge_entries
+        WHERE owner_id = :ownerId AND content ILIKE '%' || :keyword || '%'
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<KnowledgeEntry> findByKeyword(
+        @Param("ownerId") Long ownerId,
+        @Param("keyword") String keyword,
+        @Param("limit") int limit
+    );
+
     /**
      * Query all knowledge entries for the specified owner
      */
