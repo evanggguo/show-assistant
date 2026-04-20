@@ -472,7 +472,8 @@ public interface AiChatProvider {
 
 | Implementation | Status | Notes |
 |----------------|--------|-------|
-| `GoogleChatProvider` | ✅ Real (default) | Calls Google AI Studio Gemini API; default model `gemini-2.0-flash`; requires `GOOGLE_AI_API_KEY` |
+| `GoogleChatProvider` | ✅ Real (non-GCP default) | Calls Google AI Studio Gemini API; requires `GOOGLE_AI_API_KEY`; used when `ai.provider=google` and not on GCP |
+| `VertexAiChatProvider` | ✅ Real (GCP auto) | Calls Vertex AI Gemini via ADC; auto-activated when `GcpEnvironmentDetector.isRunningOnGcp()` is true; no API key required |
 | `ClaudeChatProvider` | ✅ Real | Calls Anthropic Claude API; requires `ANTHROPIC_API_KEY` |
 | `OllamaChatProvider` | ✅ Real (optional) | Calls local Ollama HTTP API; ignores `ai.mock`; commented out in docker-compose by default |
 | `MockChatProvider` | ✅ Mock fallback | Activated when a cloud provider (google/claude) has `ai.mock=true`; returns mock data; no API key needed |
@@ -481,13 +482,14 @@ public interface AiChatProvider {
 
 Switching rules:
 
-| `ai.provider` | `ai.mock` | Active Bean |
-|---------------|-----------|-------------|
-| `google` (default) | `false` (default) | `GoogleChatProvider` |
-| `google` | `true` | `MockChatProvider` |
-| `claude` | `false` | `ClaudeChatProvider` |
-| `claude` | `true` | `MockChatProvider` |
-| `ollama` | any (ignored) | `OllamaChatProvider` |
+| `ai.provider` | `ai.mock` | Environment | Active Bean |
+|---------------|-----------|-------------|-------------|
+| `google` (default) | `false` (default) | GCP (Cloud Run / GKE / GCE) | `VertexAiChatProvider` (ADC) |
+| `google` (default) | `false` (default) | non-GCP | `GoogleChatProvider` (API key) |
+| `google` | `true` | any | `MockChatProvider` |
+| `claude` | `false` | any | `ClaudeChatProvider` |
+| `claude` | `true` | any | `MockChatProvider` |
+| `ollama` | any (ignored) | any | `OllamaChatProvider` |
 
 ```yaml
 # application.yml
@@ -556,6 +558,25 @@ When enabled, configure the backend environment:
 AI_PROVIDER: ollama
 AI_OLLAMA_BASE_URL: http://ollama:11434   # Docker network internal address
 ```
+
+#### 4.5.7 GCP Vertex AI Auto-Activation
+
+When `ai.provider=google` and `ai.mock=false`, `AiConfig.GoogleProviderConfig` activates `VertexAiChatProvider` instead of `GoogleChatProvider` if the backend detects it is running on GCP. Detection is handled by `GcpEnvironmentDetector` using two checks in order:
+
+1. **Primary**: `GOOGLE_CLOUD_PROJECT` environment variable — set automatically by all GCP runtimes (Cloud Run, GKE, GCE, App Engine). Zero network cost.
+2. **Secondary**: HTTP probe to `http://metadata.google.internal/computeMetadata/v1/` with `Metadata-Flavor: Google` header, 500ms timeout. Only runs if env var is absent. Swallows all exceptions.
+
+The detection result is cached after the first call (static volatile field). `VertexAiGeminiChatModel` is injected via `ObjectProvider` so that a missing or unconfigured Vertex AI bean causes a graceful fallback to Google AI Studio rather than a startup failure.
+
+Required environment variables on GCP:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GOOGLE_CLOUD_PROJECT` | _(auto-set by GCP)_ | GCP project ID; also triggers GCP detection |
+| `VERTEX_AI_LOCATION` | `us-central1` | Vertex AI API region |
+| `GOOGLE_AI_MODEL` | `gemini-2.5-flash-lite` | Gemini model name (shared with Google AI Studio path) |
+
+No `GOOGLE_AI_API_KEY` is required on GCP — Vertex AI authenticates via ADC.
 
 ---
 

@@ -83,7 +83,7 @@ public class ChatService {
             conversationService.saveUserMessage(conversationId, req.message());
 
             // Step 3: RAG retrieval (returns empty list in Phase 2)
-            List<KnowledgeEntryDto> ragContext = ragService.retrieve(ownerId, req.message());
+            List<KnowledgeEntryDto> ragContext = ragService.retrieve(ownerId, req.message(), 10);
 
             // Step 4: build Spring AI message list
             boolean toolCallingEnabled = aiChatProvider.supportsToolCalling();
