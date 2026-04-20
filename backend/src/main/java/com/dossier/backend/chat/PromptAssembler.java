@@ -37,6 +37,8 @@ public class PromptAssembler {
 
         // ── Identity ──────────────────────────────────────────────
         sb.append("You are the AI personal assistant of ").append(ownerProfile.getName()).append(".\n");
+        sb.append("When a visitor says \"you\" or \"你\" in a question, they are asking about ")
+          .append(ownerProfile.getName()).append(", not about you as an AI.\n");
         if (ownerProfile.getTagline() != null && !ownerProfile.getTagline().isBlank()) {
             sb.append(ownerProfile.getName()).append("'s bio: ")
               .append(ownerProfile.getTagline()).append("\n");

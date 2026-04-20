@@ -51,6 +51,17 @@ spring:
         embedding:
           options:
             model: gemini-embedding-001
+    # Vertex AI Gemini (GCP cloud model, auto-activated on GCP via ADC; no API key required)
+    # project-id resolves to empty string when GOOGLE_CLOUD_PROJECT is not set (non-GCP environments),
+    # which prevents VertexAiGeminiChatModel auto-configuration from initializing on startup.
+    vertex:
+      ai:
+        gemini:
+          project-id: ${GOOGLE_CLOUD_PROJECT:}
+          location: ${VERTEX_AI_LOCATION:us-central1}
+          chat:
+            options:
+              model: ${GOOGLE_AI_MODEL:gemini-2.5-flash-lite}
     model:
       embedding:
         text: google-genai  # explicitly enable Google text-embedding-004
