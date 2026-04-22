@@ -112,7 +112,7 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
           <div className="w-full max-w-[800px] flex flex-col items-center gap-6">
             {/* Owner hero avatar */}
             {!profileLoading && (
-              <OwnerProfile profile={ownerProfile} variant="hero" />
+              <OwnerProfile profile={ownerProfile} ownerUsername={ownerUsername} variant="hero" />
             )}
             {profileLoading && (
               <div className="w-20 h-20 rounded-full bg-gray-200 animate-pulse" />
@@ -120,6 +120,9 @@ export default function ChatPage({ ownerUsername }: ChatPageProps) {
 
             {/* Welcome message */}
             <div className="text-center">
+              <p className="text-xl font-medium text-gray-700 mb-1">
+                I am {ownerUsername}&apos;s assistant.
+              </p>
               <h2 className="text-xl font-medium text-gray-700">
                 How can I help you?
               </h2>

@@ -136,16 +136,14 @@ export const changePassword = (oldPassword: string, newPassword: string): Promis
     body: JSON.stringify({ oldPassword, newPassword }),
   })
 
-// ── Super Admin (owner account creation/deletion, uses hardcoded password header) ─
+// ── Super Admin (owner account management; token supplied by caller, never hardcoded) ─
 
-const SUPER_ADMIN_PASSWORD = 'superadmin888'
-
-async function superAdminFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function superAdminFetch<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-Super-Admin-Token': SUPER_ADMIN_PASSWORD,
+      'X-Super-Admin-Token': token,
       ...(options.headers as Record<string, string>),
     },
   })
@@ -157,17 +155,20 @@ async function superAdminFetch<T>(path: string, options: RequestInit = {}): Prom
   return body.data as T
 }
 
-export const fetchOwners = (): Promise<OwnerSummaryData[]> =>
-  superAdminFetch<OwnerSummaryData[]>('/api/super-admin/owners')
+export const fetchCapabilities = (token: string): Promise<{ canDelete: boolean }> =>
+  superAdminFetch<{ canDelete: boolean }>('/api/super-admin/capabilities', token)
 
-export const createOwner = (username: string): Promise<OwnerSummaryData> =>
-  superAdminFetch<OwnerSummaryData>('/api/super-admin/owners', {
+export const fetchOwners = (token: string): Promise<OwnerSummaryData[]> =>
+  superAdminFetch<OwnerSummaryData[]>('/api/super-admin/owners', token)
+
+export const createOwner = (username: string, token: string): Promise<OwnerSummaryData> =>
+  superAdminFetch<OwnerSummaryData>('/api/super-admin/owners', token, {
     method: 'POST',
     body: JSON.stringify({ username }),
   })
 
-export const deleteOwner = (id: number): Promise<void> =>
-  superAdminFetch<void>(`/api/super-admin/owners/${id}`, { method: 'DELETE' })
+export const deleteOwner = (id: number, token: string): Promise<void> =>
+  superAdminFetch<void>(`/api/super-admin/owners/${id}`, token, { method: 'DELETE' })
 
 // ── Document Management ───────────────────────────────────────────
 

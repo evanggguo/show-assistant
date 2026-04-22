@@ -1,6 +1,8 @@
 package com.dossier.backend.chat;
 
 import com.dossier.backend.chat.dto.ChatRequest;
+import com.dossier.backend.security.AiTokenBudgetService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ChatController {
 
     private final ChatService chatService;
+    private final AiTokenBudgetService aiTokenBudgetService;
 
     /**
      * TDD 4.1 — POST /api/chat/stream
@@ -35,12 +38,23 @@ public class ChatController {
      * - event: error  data: {"code": "...", "message": "..."}
      */
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@Valid @RequestBody ChatRequest req) {
-        log.debug("Chat stream request: conversationId={}, messageLength={}",
-            req.conversationId(), req.message().length());
+    public SseEmitter stream(@Valid @RequestBody ChatRequest req, HttpServletRequest httpRequest) {
+        aiTokenBudgetService.consumeOrThrow();
+
+        String clientIp = extractClientIp(httpRequest);
+        log.debug("Chat stream request: conversationId={}, messageLength={}, ip={}",
+            req.conversationId(), req.message().length(), clientIp);
 
         SseEmitter emitter = chatService.createEmitter();
-        chatService.handleStream(req, emitter);
+        chatService.handleStream(req, emitter, 1L, clientIp);
         return emitter;
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

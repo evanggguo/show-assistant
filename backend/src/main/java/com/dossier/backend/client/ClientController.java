@@ -6,6 +6,8 @@ import com.dossier.backend.common.response.ApiResponse;
 import com.dossier.backend.owner.Owner;
 import com.dossier.backend.owner.OwnerService;
 import com.dossier.backend.owner.dto.OwnerProfileResponse;
+import com.dossier.backend.security.AiTokenBudgetService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,7 @@ public class ClientController {
 
     private final OwnerService ownerService;
     private final ChatService chatService;
+    private final AiTokenBudgetService aiTokenBudgetService;
 
     /** Get the public profile of the specified owner. */
     @GetMapping("/profile")
@@ -53,14 +56,26 @@ public class ClientController {
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(
         @PathVariable String username,
-        @Valid @RequestBody ChatRequest req) {
+        @Valid @RequestBody ChatRequest req,
+        HttpServletRequest httpRequest) {
+
+        aiTokenBudgetService.consumeOrThrow();
 
         Owner owner = ownerService.getOwnerByUsername(username);
-        log.debug("Chat stream: username={}, ownerId={}, messageLength={}",
-            username, owner.getId(), req.message().length());
+        String clientIp = extractClientIp(httpRequest);
+        log.debug("Chat stream: username={}, ownerId={}, messageLength={}, ip={}",
+            username, owner.getId(), req.message().length(), clientIp);
 
         SseEmitter emitter = chatService.createEmitter();
-        chatService.handleStream(req, emitter, owner.getId());
+        chatService.handleStream(req, emitter, owner.getId(), clientIp);
         return emitter;
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

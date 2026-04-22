@@ -2,22 +2,24 @@
 
 /**
  * Super Admin page /admin-panel.
- * Uses a hardcoded password (superadmin888) to add and delete Owner accounts.
- * Owner accounts can log in to the /admin console; default password is 888888.
+ * Login validates the entered token against the backend /capabilities endpoint.
+ * The backend determines whether the token grants delete access; the frontend
+ * renders the delete button only when canDelete is true.
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Plus, Trash2, ShieldAlert, Eye, EyeOff } from 'lucide-react'
 import type { OwnerSummaryData } from '@/lib/admin-types'
-import { fetchOwners, createOwner, deleteOwner } from '@/lib/admin-api'
-
-const SUPER_ADMIN_PASSWORD = 'superadmin888'
+import { fetchCapabilities, fetchOwners, createOwner, deleteOwner } from '@/lib/admin-api'
 
 export default function AdminPanelPage() {
   const [authed, setAuthed] = useState(false)
+  const [token, setToken] = useState('')
+  const [canDelete, setCanDelete] = useState(false)
   const [pwInput, setPwInput] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [pwError, setPwError] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
 
   const [owners, setOwners] = useState<OwnerSummaryData[]>([])
   const [loading, setLoading] = useState(false)
@@ -29,11 +31,11 @@ export default function AdminPanelPage() {
   const [creating, setCreating] = useState(false)
   const [usernameError, setUsernameError] = useState('')
 
-  const loadOwners = useCallback(async () => {
+  const loadOwners = useCallback(async (activeToken: string) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchOwners()
+      const data = await fetchOwners(activeToken)
       setOwners(data)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
@@ -43,15 +45,21 @@ export default function AdminPanelPage() {
   }, [])
 
   useEffect(() => {
-    if (authed) loadOwners()
-  }, [authed, loadOwners])
+    if (authed && token) loadOwners(token)
+  }, [authed, token, loadOwners])
 
-  const handleLogin = () => {
-    if (pwInput === SUPER_ADMIN_PASSWORD) {
+  const handleLogin = async () => {
+    setLoginLoading(true)
+    setPwError(false)
+    try {
+      const caps = await fetchCapabilities(pwInput)
+      setToken(pwInput)
+      setCanDelete(caps.canDelete)
       setAuthed(true)
-      setPwError(false)
-    } else {
+    } catch {
       setPwError(true)
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -68,11 +76,11 @@ export default function AdminPanelPage() {
 
     setCreating(true)
     try {
-      await createOwner(newUsername)
+      await createOwner(newUsername, token)
       setNewUsername('')
       setShowForm(false)
       setUsernameError('')
-      await loadOwners()
+      await loadOwners(token)
     } catch (e) {
       setUsernameError(e instanceof Error ? e.message : 'Failed to create')
     } finally {
@@ -83,8 +91,8 @@ export default function AdminPanelPage() {
   const handleDelete = async (id: number, username: string) => {
     if (!confirm(`Are you sure you want to delete owner "${username}"? This action cannot be undone.`)) return
     try {
-      await deleteOwner(id)
-      await loadOwners()
+      await deleteOwner(id, token)
+      await loadOwners(token)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete')
     }
@@ -128,9 +136,12 @@ export default function AdminPanelPage() {
             {pwError && <p className="text-xs text-red-500">Incorrect password</p>}
             <button
               onClick={handleLogin}
+              disabled={loginLoading}
               className="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm
-                         rounded-xl transition-colors font-medium"
+                         rounded-xl transition-colors font-medium flex items-center justify-center gap-2
+                         disabled:opacity-60"
             >
+              {loginLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               Enter Admin
             </button>
           </div>
@@ -233,12 +244,14 @@ export default function AdminPanelPage() {
                 <span className="text-xs text-gray-400 flex-shrink-0">
                   {new Date(owner.createdAt).toLocaleDateString('en-US')}
                 </span>
-                <button
-                  onClick={() => handleDelete(owner.id, owner.username)}
-                  className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {canDelete && (
+                  <button
+                    onClick={() => handleDelete(owner.id, owner.username)}
+                    className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
