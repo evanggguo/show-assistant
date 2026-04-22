@@ -137,6 +137,13 @@
             <version>5.3.0</version>
         </dependency>
 
+        <!-- Bucket4j — in-memory token bucket rate limiting (no Redis required) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
         <!-- 文件上传工具 -->
         <dependency>
             <groupId>commons-io</groupId>

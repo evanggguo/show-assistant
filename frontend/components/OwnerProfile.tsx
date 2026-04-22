@@ -15,11 +15,13 @@ import type { OwnerProfile as OwnerProfileType } from '@/lib/types'
 
 interface OwnerProfileProps {
   profile: OwnerProfileType
+  ownerUsername?: string
   variant?: 'hero' | 'compact'
 }
 
 export default function OwnerProfile({
   profile,
+  ownerUsername,
   variant = 'hero',
 }: OwnerProfileProps) {
   if (variant === 'compact') {
@@ -40,13 +42,13 @@ export default function OwnerProfile({
   // Hero mode
   return (
     <div className="flex flex-col items-center gap-3 py-6">
-      <p className="text-sm font-medium text-gray-400 tracking-wide uppercase">
-        Welcome to Dossier
+      <p className="text-2xl font-semibold text-gray-700">
+        Welcome to Dossier System
       </p>
       {/* Avatar (hero: 80px) */}
       <Avatar name={profile.name} avatarUrl={profile.avatarUrl} size={80} />
       <div className="text-center">
-        <p className="text-base text-gray-600">I am {profile.name}&apos;s assistant</p>
+        <p className="text-base text-gray-600">I am {ownerUsername ?? profile.name}&apos;s assistant</p>
         {profile.tagline && (
           <p className="text-sm text-gray-400 mt-1">{profile.tagline}</p>
         )}

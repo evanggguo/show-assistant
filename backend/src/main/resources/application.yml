@@ -79,13 +79,27 @@ ai:
 app:
   sse:
     timeout-ms: 180000
+  ai-budget:
+    daily-max-calls: ${AI_DAILY_MAX_CALLS:500}
+  rate-limit:
+    chat:
+      per-minute: ${RATE_LIMIT_CHAT_PER_MINUTE:10}
+      burst: ${RATE_LIMIT_CHAT_BURST:3}
+    login:
+      per-minute: ${RATE_LIMIT_LOGIN_PER_MINUTE:5}
+      burst: ${RATE_LIMIT_LOGIN_BURST:2}
+    conversation:
+      per-hour: ${RATE_LIMIT_CONVERSATION_PER_HOUR:30}
   # Admin console JWT authentication
   jwt:
     secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBKV1QgdGVzdGluZw==}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
-  # Super-admin password (used for /api/super-admin/** endpoints to manage owner accounts)
+  # Super-admin tokens (used for /api/super-admin/** endpoints; must be supplied via environment variables)
+  # SUPER_ADMIN_PASSWORD       — add-only access (list + create)
+  # SUPER_ADMIN_FULL_ACCESS_PASSWORD — full access (list + create + delete)
   super-admin:
-    password: ${SUPER_ADMIN_PASSWORD:superadmin888}
+    password: ${SUPER_ADMIN_PASSWORD}
+    full-access-password: ${SUPER_ADMIN_FULL_ACCESS_PASSWORD}
   # File upload storage path
   storage:
     upload-dir: ${UPLOAD_DIR:./uploads}
