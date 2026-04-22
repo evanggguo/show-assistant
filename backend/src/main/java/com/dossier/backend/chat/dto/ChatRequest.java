@@ -1,6 +1,7 @@
 package com.dossier.backend.chat.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -14,12 +15,14 @@ public record ChatRequest(
     Long conversationId,
 
     @NotBlank(message = "Message content must not be blank")
+    @Size(max = 4000, message = "Message must not exceed 4000 characters")
     String message,
 
     /**
      * History messages carried by the guest (used when conversationId is null).
      * Ignored for logged-in users; their history is loaded from the database.
      */
+    @Size(max = 20, message = "History must not exceed 20 messages")
     List<HistoryMessage> history
 ) {
     /** TDD 4.1 — History message record for guest-mode context. */

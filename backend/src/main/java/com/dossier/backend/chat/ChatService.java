@@ -10,6 +10,7 @@ import com.dossier.backend.knowledge.RagService;
 import com.dossier.backend.knowledge.dto.KnowledgeEntryDto;
 import com.dossier.backend.owner.OwnerService;
 import com.dossier.backend.owner.dto.OwnerProfileResponse;
+import com.dossier.backend.security.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ChatService {
 
     private static final int HISTORY_LIMIT = 20;
+    private static final int MAX_HISTORY_TOTAL_CHARS = 40_000;
 
     private final AiChatProvider aiChatProvider;
     private final ConversationService conversationService;
@@ -41,6 +43,7 @@ public class ChatService {
     private final RagService ragService;
     private final PromptAssembler promptAssembler;
     private final SseEventBuilder sseEventBuilder;
+    private final RateLimitService rateLimitService;
 
     @Value("${app.sse.timeout-ms:180000}")
     private long sseTimeoutMs;
@@ -70,14 +73,19 @@ public class ChatService {
     /** Backwards-compatible entry point (owner_id=1) for the legacy /api/chat/stream route. */
     @Async("sseTaskExecutor")
     public void handleStream(ChatRequest req, SseEmitter emitter) {
-        handleStream(req, emitter, 1L);
+        handleStream(req, emitter, 1L, "unknown");
     }
 
     @Async("sseTaskExecutor")
     public void handleStream(ChatRequest req, SseEmitter emitter, Long ownerId) {
+        handleStream(req, emitter, ownerId, "unknown");
+    }
+
+    @Async("sseTaskExecutor")
+    public void handleStream(ChatRequest req, SseEmitter emitter, Long ownerId, String clientIp) {
         try {
             // Step 1: create or load conversation
-            Long conversationId = resolveConversationId(req, ownerId);
+            Long conversationId = resolveConversationId(req, ownerId, clientIp);
 
             // Step 2: save user message
             conversationService.saveUserMessage(conversationId, req.message());
@@ -161,9 +169,10 @@ public class ChatService {
      * When conversationId is null (guest), a new conversation is created;
      * otherwise the ID from the request is used directly.
      */
-    private Long resolveConversationId(ChatRequest req, Long ownerId) {
+    private Long resolveConversationId(ChatRequest req, Long ownerId, String clientIp) {
         if (req.conversationId() == null) {
-            // Guest new conversation: user_id=null
+            // Check conversation creation rate limit before hitting the DB
+            rateLimitService.checkConversationLimit(clientIp);
             Conversation newConversation = conversationService.createConversation(ownerId, null);
             log.debug("Created new guest conversation id={} for ownerId={}", newConversation.getId(), ownerId);
             return newConversation.getId();
@@ -190,7 +199,14 @@ public class ChatService {
         if (req.conversationId() == null && req.history() != null && !req.history().isEmpty()) {
             // Guest mode: use history from the frontend (excludes the just-saved user message to avoid duplication)
             List<ChatRequest.HistoryMessage> history = req.history();
+            int totalHistoryChars = 0;
             for (ChatRequest.HistoryMessage h : history) {
+                int contentLen = h.content() != null ? h.content().length() : 0;
+                totalHistoryChars += contentLen;
+                if (totalHistoryChars > MAX_HISTORY_TOTAL_CHARS) {
+                    log.warn("Guest history exceeds total character budget ({}), truncating", MAX_HISTORY_TOTAL_CHARS);
+                    break;
+                }
                 if ("user".equals(h.role())) {
                     messages.add(new UserMessage(h.content()));
                 } else if ("assistant".equals(h.role())) {
