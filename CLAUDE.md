@@ -2,166 +2,206 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 项目概述
+## Project Overview
 
-Dossier 是 AI 个人展示助理，让访客通过聊天了解拥有者的技能和履历。支持多 Owner，通过 URL username 进行数据隔离。
+Dossier is an AI Personal Portfolio Assistant that allows visitors to learn about an owner's skills and resume through chat. It supports multiple owners, using URL-based usernames for data isolation.
 
-**三个子系统**：
-- **客户端（Client Portal）** `/{username}/chat`：无需登录，访客与 AI 助手对话了解 Owner 信息
-- **Owner 管理端（Admin Console）** `/admin`：Owner 登录后管理知识库、文档、个人信息、AI 自定义指令和初始提示词；JWT 鉴权
-- **超级管理面板（Super Admin Panel）** `/admin-panel`：创建/删除 Owner 账号；固定 Token（`X-Super-Admin-Token`）鉴权，不对外暴露
+**Three Subsystems**:
+- **Client Portal** `/{username}/chat`: No login required; visitors chat with the AI assistant to learn about the owner.
+- **Owner Admin Console** `/admin`: Owners log in to manage their knowledge base, documents, personal info, custom AI instructions, and initial prompts; secured via JWT.
+- **Super Admin Panel** `/admin-panel`: Create/delete owner accounts; secured via a static token (`X-Super-Admin-Token`), not exposed to the public.
 
-## 常用命令
+## Common Commands
 
-### 后端（Spring Boot）
+### Backend (Spring Boot)
 
 ```bash
 cd backend
 
-# 启动（依赖本地 PostgreSQL，端口 8080）
+# Start (requires local PostgreSQL, port 8080)
 ./mvnw spring-boot:run
 
-# 编译
+# Compile
 ./mvnw compile
 
-# 运行全部测试
+# Run all tests
 ./mvnw test
 
-# 运行单个测试类
+# Run a specific test class
 ./mvnw test -Dtest=ChatServiceTest
 
-# 运行单个测试方法
+# Run a specific test method
 ./mvnw test -Dtest=ChatServiceTest#testHandleStream
 ```
 
-### 前端（Next.js）
+### Frontend (Next.js)
 
 ```bash
 cd frontend
 
-# 开发服务器（端口 3000）
+# Development server (port 3000)
 npm run dev
 
-# 构建
+# Build
 npm run build
 
 # Lint
 npm run lint
 ```
 
-### Docker（完整环境）
+### Docker (Full Environment)
 
 ```bash
-# 默认 Mock 模式启动（无需任何 API Key）
+# Start in Mock mode (default, no API keys required)
 docker compose up -d
 
-# 使用 Google Gemini（默认提供商，推荐）
+# Using Google Gemini (default provider, recommended)
 AI_MOCK=false GOOGLE_AI_API_KEY=<key> docker compose up -d
 
-# 使用 Claude API
+# Using Claude API
 AI_PROVIDER=claude AI_MOCK=false ANTHROPIC_API_KEY=<key> docker compose up -d
 
-# 使用本地 Ollama（需先取消 docker-compose.yml 中 ollama 服务的注释）
+# Using local Ollama (requires uncommenting the ollama service in docker-compose.yml)
 AI_PROVIDER=ollama docker compose up -d
 
-# 查看后端日志
+# View backend logs
 docker compose logs -f backend
 ```
 
-本地开发时，先用 Docker 启动 PostgreSQL，再单独运行后端：
+For local development, start PostgreSQL via Docker first, then run the backend separately:
 ```bash
 docker compose up postgres -d
 cd backend && ./mvnw spring-boot:run
 ```
 
-## 架构
+## Architecture
 
-### 后端包结构
+### Backend Package Structure
 
 ```
 com.dossier.backend
 ├── ai/
-│   ├── provider/           # AI 提供商抽象层
-│   │   ├── AiChatProvider  # 核心接口：streamChat() + generateSuggestions()
-│   │   ├── OllamaChatProvider
+│   ├── provider/                # AI Provider Abstraction Layer
+│   │   ├── AiChatProvider       # Core Interface: streamChat() + generateSuggestions()
+│   │   ├── GoogleChatProvider   # Google AI Studio (non-GCP)
+│   │   ├── VertexAiChatProvider # Vertex AI Gemini (auto-activated on GCP)
+│   │   ├── GcpEnvironmentDetector # Detects GCP environment via metadata server
 │   │   ├── ClaudeChatProvider
+│   │   ├── OllamaChatProvider
 │   │   └── MockChatProvider
-│   └── EmbeddingService    # 向量化（Phase 3 使用）
+│   └── EmbeddingService         # Vectorization (Used in Phase 3)
 ├── chat/
-│   ├── ChatController      # POST /api/chat/stream
-│   ├── ChatService         # 核心流式处理（@Async）
-│   ├── PromptAssembler     # 构建 System Prompt
-│   ├── SseEventBuilder     # SSE 事件格式化
+│   ├── ChatController      # POST /api/owners/{username}/chat/stream
+│   ├── ChatService         # Core streaming logic (@Async)
+│   ├── PromptAssembler     # Builds System Prompt
+│   ├── SseEventBuilder     # SSE event formatting
 │   └── tool/
-│       └── SuggestFollowupsTool  # per-request 非 Bean，捕获动态建议
-├── conversation/           # 会话 & 消息持久化
+│       └── SuggestFollowupsTool  # Non-bean per-request tool to capture dynamic suggestions
+├── client/
+│   └── ClientController    # GET /api/owners/{username}/profile|suggestions (public)
+├── admin/                  # Owner Admin interfaces (JWT Auth)
+│   ├── auth/               # Login, JWT issuance
+│   ├── owner/              # Personal info & custom AI instructions
+│   ├── knowledge/          # Knowledge base CRUD
+│   ├── document/           # File upload (max 50MB) & processing
+│   └── suggestion/         # Initial prompt CRUD
+├── superadmin/
+│   ├── SuperAdminController  # GET/POST/DELETE /api/super-admin/owners
+│   └── SuperAdminService
+├── conversation/           # Conversation & Message persistence
 ├── knowledge/
-│   ├── RagService          # Phase 2 为 stub，Phase 3 接入向量检索
+│   ├── RagService          # Phase 2: stub; Phase 3: vector retrieval integration
 │   └── KnowledgeService
-├── owner/                  # Owner 信息 & 预设提示词
-├── document/               # 文件管理（Phase 3）
+├── owner/                  # Owner Entity & Repository
+├── document/               # File storage (UPLOAD_DIR, Phase 3)
 └── config/
-    ├── AiConfig            # 条件注册 AiChatProvider Bean
-    ├── AsyncConfig         # sseTaskExecutor 线程池
+    ├── AiConfig            # Conditional registration of AiChatProvider Beans
+    ├── AsyncConfig         # sseTaskExecutor thread pool
     ├── CorsConfig
-    └── SecurityConfig
+    ├── SecurityConfig
+    ├── JwtConfig / JwtAuthenticationFilter  # JWT authentication
+    ├── DataInitializer     # Seeds admin account from env vars on Docker startup
+    └── VectorType          # Custom Hibernate type for pgvector
+├── common/
+│   ├── exception/          # BusinessException, ResourceNotFoundException, GlobalExceptionHandler
+│   └── response/           # ApiResponse (Unified response wrapper)
 ```
 
-### AI 提供商切换逻辑
+### AI Provider Switching Logic
 
-通过 `AiConfig` 按条件注册唯一的 `AiChatProvider` Bean：
+`AiConfig` conditionally registers a unique `AiChatProvider` Bean:
 
-| `ai.provider` | `ai.mock` | 生效提供商 |
+| `ai.provider` | `ai.mock` | Active Provider |
 |---|---|---|
-| `google`（默认） | `true` | MockChatProvider |
-| `google` | `false` | GoogleChatProvider（需 GOOGLE_AI_API_KEY） |
+| `google` (default) | `true` | MockChatProvider |
+| `google` | `false`, not on GCP | GoogleChatProvider (requires GOOGLE_AI_API_KEY) |
+| `google` | `false`, on GCP | VertexAiChatProvider (ADC auto-auth, no key needed) |
 | `claude` | `true` | MockChatProvider |
-| `claude` | `false` | ClaudeChatProvider（需 ANTHROPIC_API_KEY） |
-| `ollama` | 任意 | OllamaChatProvider（始终真实调用，无需 Docker 中的 Ollama 服务） |
+| `claude` | `false` | ClaudeChatProvider (requires ANTHROPIC_API_KEY) |
+| `ollama` | Any | OllamaChatProvider (Always live) |
 
-**部署注意**：默认提供商为 `google`，**无需**安装或启动 Ollama。`docker-compose.yml` 中 Ollama 服务已注释，仅在明确使用 `AI_PROVIDER=ollama` 时才需要启用。
+**GCP Auto-Detection**: `GcpEnvironmentDetector` requests the GCP metadata server (`169.254.169.254`) at startup. If reachable, it activates `VertexAiChatProvider`, using the `GOOGLE_CLOUD_PROJECT` env var for the project ID.
 
-### 核心流式聊天流程
+**AI_MOCK Defaults**: `application.yml` defaults to `AI_MOCK=false`, but `docker-compose.yml` overrides this to `AI_MOCK=true` (Docker runs in Mock mode by default).
 
-`ChatService.handleStream()`（`@Async("sseTaskExecutor")`）按顺序执行：
-1. 创建或复用会话（`conversationId=null` 时为游客模式）
-2. 保存 user message 到 DB
-3. `RagService.retrieve()` — Phase 2 返回空列表
-4. 构建 Spring AI 消息列表（SystemMessage + 历史 + 当前消息）
-5. `PromptAssembler.assemble()` 动态构建含 Owner 信息和 RAG 上下文的 System Prompt
-6. 创建 per-request `SuggestFollowupsTool` 实例（非 Spring Bean，避免状态共享）
-7. `AiChatProvider.streamChat()` 流式订阅
-8. 流结束后：检查 `SuggestFollowupsTool.getCapturedSuggestions()`；若为空（小模型不支持 Function Calling），调用 `generateSuggestions()` fallback
-9. 保存 assistant message + suggestions，推送 `done` SSE 事件
+**Deployment Note**: The default provider is `google`. **No need** to install or start Ollama unless specifically using `AI_PROVIDER=ollama`.
 
-### 前端架构
+### Core Streaming Chat Flow
 
-**路由结构**：
-- `app/[ownerUsername]/chat/page.tsx` → 客户端聊天页（动态路由，按 username 隔离）
-- `app/admin/` → Owner 管理端（login / profile / knowledge / documents）；`admin/layout.tsx` 做 JWT 认证守卫
-- `app/admin-panel/page.tsx` → 超级管理面板（固定 Token 验证，Owner 账号增删）
+`ChatService.handleStream()` (annotated with `@Async("sseTaskExecutor")`) executes in order:
+1. Create or reuse conversation (`conversationId=null` indicates guest mode).
+2. Save user message to DB.
+3. `RagService.retrieve()` — Returns empty list in Phase 2.
+4. Build Spring AI message list (SystemMessage + History + Current Message).
+5. `PromptAssembler.assemble()`: Dynamically builds System Prompt containing Owner info and RAG context.
+6. Create per-request `SuggestFollowupsTool` instance (not a Spring Bean to avoid state sharing).
+7. `AiChatProvider.streamChat()`: Subscribe to the stream.
+8. Post-stream: Check `SuggestFollowupsTool.getCapturedSuggestions()`; if empty (small models lacking Function Calling), use `generateSuggestions()` fallback.
+9. Save assistant message + suggestions, push `done` SSE event.
 
-**核心 Hook**：`hooks/useChatStream.ts`
-- 使用 `fetch + ReadableStream` 而非 `EventSource`（原因：EventSource 只支持 GET，无法携带 JSON body）
-- SSE 三种事件：`token`（追加流式文本）、`done`（结束并保存消息）、`error`
-- 游客模式：对话历史存 `localStorage`，每次请求携带完整 `history` 数组（后端不依赖 sessionId）
+### Frontend Architecture
 
-**API 层**：
-- `lib/api.ts`：客户端公开接口（owner profile、初始提示词）
-- `lib/admin-api.ts`：Owner 管理端接口（JWT Bearer Token 自动注入，401 跳转登录）
-- SSE 流式对话直接在 `useChatStream` 内处理，不经过 Next.js API Route（避免 SSE 被缓冲）
+**Routing Structure**:
+- `app/[ownerUsername]/chat/page.tsx` → Client chat page (dynamic route, isolated by username).
+- `app/admin/` → Owner management (login / profile / knowledge / documents); `admin/layout.tsx` handles JWT guard.
+- `app/admin-panel/page.tsx` → Super Admin panel (static token validation, manage owner accounts).
 
-**Nginx**：`/api/` 请求直接代理到后端（含 SSE 关键配置 `proxy_buffering off`），其余流量到 Next.js。
+**Core Hook**: `hooks/useChatStream.ts`
+- Uses `fetch + ReadableStream` instead of `EventSource` (Reason: `EventSource` only supports GET; cannot send JSON bodies).
+- Three SSE event types: `token` (append text), `done` (finish and save), `error`.
+- **Guest Mode**: Chat history stored in `localStorage` (persisted via `lib/storage.ts`, isolated per owner, 20-message limit); each request sends the full `history` array.
 
-### 数据库
+**API & Utils Layer**:
+- `lib/api.ts`: Public client interfaces (owner profile, initial prompts).
+- `lib/admin-api.ts`: Owner admin interfaces (automatic JWT Bearer Token injection).
+- `lib/error-utils.ts`: Maps technical error codes to user-friendly messages.
+- SSE streaming is handled directly within `useChatStream` to avoid Next.js API Route buffering.
 
-- PostgreSQL 16 + pgvector，Flyway 管理迁移（`backend/src/main/resources/db/migration/`）
-- `V1` 建表，`V2` 种子 owner 数据，`V3` 种子提示词
-- `dynamic_suggestions` 表：每条 assistant 消息生成的动态建议（关联 `message_id`）
-- `prompt_suggestions` 表：Owner 预设的首屏初始提示词
+**Next.js Build**: Uses `output: 'standalone'` for smaller Docker images. `NEXT_PUBLIC_API_URL` and `BACKEND_INTERNAL_URL` are injected as build args during `docker compose build`.
 
-### Phase 说明
+**Nginx**: Proxies `/api/` requests directly to the backend (with `proxy_buffering off` for SSE), while other traffic goes to Next.js.
 
-代码注释中 `Phase 2`/`Phase 3` 标识当前完成度：
-- **Phase 2（当前）**：SSE 流式聊天可用，RAG 为 stub（空列表），向量检索未接入
-- **Phase 3（规划）**：接入真实向量检索，`RagService.retrieve()` 调用 `EmbeddingService` + `KnowledgeRepository.findSimilarByOwner()`
+### Database
+
+- PostgreSQL 16 + pgvector; migrations managed via Flyway (`backend/src/main/resources/db/migration/`).
+- `V1`: Tables; `V2`: Owner seeds; `V3`: Prompt seeds; `V4`: Embedding dimensions; `V5`: Auth fields; `V6`: Custom AI instructions.
+- `dynamic_suggestions` table: Stores per-message follow-up suggestions.
+- `prompt_suggestions` table: Stores owner-defined initial prompts for the landing screen.
+
+### Docker Seed Accounts
+
+`DataInitializer` creates a default admin account on container startup using env vars:
+- `ADMIN_USERNAME` (Default: `admin`)
+- `ADMIN_PASSWORD_HASH` (Bcrypt hash pre-configured in `docker-compose.yml`)
+
+Super Admin uses two tokens passed via `X-Super-Admin-Token` (No defaults, must be provided in env):
+- `SUPER_ADMIN_PASSWORD`: Read-only/Creation access (list + create).
+- `SUPER_ADMIN_FULL_ACCESS_PASSWORD`: Full access (list + create + delete).
+
+The frontend calls `/api/super-admin/capabilities` to determine if the "Delete" button should be displayed based on the current token.
+
+### Phase Status
+
+`Phase 2`/`Phase 3` markers in comments indicate current progress:
+- **Phase 2 (Current)**: SSE streaming chat is functional; RAG is a stub (empty list).
+- **Phase 3 (Planned)**: Integration of real vector retrieval via `EmbeddingService` and `KnowledgeRepository`.

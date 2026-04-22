@@ -1,6 +1,7 @@
 package com.dossier.backend.common.exception;
 
 import com.dossier.backend.common.response.ApiResponse;
+import com.dossier.backend.security.RateLimitException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +47,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .badRequest()
             .body(ApiResponse.error("VALIDATION_ERROR", message));
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitException(RateLimitException ex) {
+        log.warn("Rate limit exceeded: code={}, message={}", ex.getCode(), ex.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", "60")
+            .body(ApiResponse.error(ex.getCode(), ex.getMessage()));
     }
 
     /** TDD 6.2.4 — Handle generic runtime exceptions. */
