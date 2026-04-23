@@ -48,10 +48,10 @@ export default function MessageList({
           />
         ))}
 
-        {/* Streaming bubble: shown while output is in progress */}
-        {isStreaming && streamingText && (
-          <StreamingBubble text={streamingText} />
-        )}
+        {/* StreamingBubble is shown for the entire duration of streaming;
+            it renders the dots alone while waiting for the first token,
+            then the text + dots once tokens arrive */}
+        {isStreaming && <StreamingBubble text={streamingText} />}
 
         {/* Scroll anchor */}
         <div ref={bottomRef} />

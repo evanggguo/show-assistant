@@ -11,6 +11,7 @@
 
 import React from 'react'
 import ReactMarkdown from 'react-markdown'
+import TypingIndicator from './TypingIndicator'
 
 interface StreamingBubbleProps {
   text: string
@@ -19,15 +20,14 @@ interface StreamingBubbleProps {
 export default function StreamingBubble({ text }: StreamingBubbleProps) {
   return (
     <div className="mb-6">
-      {/* AI response: full width, no bubble border */}
-      <div className="prose prose-sm max-w-none text-gray-800">
-        <ReactMarkdown>{text || ''}</ReactMarkdown>
-      </div>
-      {/* Blinking cursor animation */}
-      <span
-        className="inline-block w-[2px] h-4 bg-gray-600 ml-0.5 align-middle animate-pulse"
-        aria-hidden="true"
-      />
+      {/* AI response text — absent while waiting for the first token */}
+      {text && (
+        <div className="prose prose-sm max-w-none text-gray-800">
+          <ReactMarkdown>{text}</ReactMarkdown>
+        </div>
+      )}
+      {/* Three dots always visible until streaming completes */}
+      <TypingIndicator />
     </div>
   )
 }
